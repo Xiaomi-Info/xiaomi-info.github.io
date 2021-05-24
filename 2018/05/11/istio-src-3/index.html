@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      istio源码解析系列(三)-Mixer工作流程浅析 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>istio源码解析系列(三)-Mixer工作流程浅析</h2>
+  <p class="post-date">2018-05-11</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本系列文章主要从源码（<a href="https://github.com/istio/istio/tree/35e2b9042fe3d4ebe68772311aa1ebe46b66a1be" target="_blank" rel="noopener">35e2b904</a>）出发，对istio做深入剖析，让大家对istio有更深的认知，从而方便平时排查问题。不了解Service Mesh和Istio的同学请先阅读敖小剑老师如下文章进行概念上的理解：</p>
+<ul>
+<li><a href="https://skyao.io/publication/service-mesh-next-generation-microservice/" target="_blank" rel="noopener">Service Mesh：下一代微服务</a></li>
+<li><a href="https://skyao.io/publication/istio-introduction/" target="_blank" rel="noopener">服务网格新生代-Istio</a></li>
+</ul>
+<p>本文主要对istio在ubuntu16.04下环境搭建做简单介绍，Mac用户和其他linux发行版用户请根据bash脚本做相应调整。</p>
+<h1 id="概念介绍"><a href="#概念介绍" class="headerlink" title="概念介绍"></a>概念介绍</h1><p>Mixer提供三个核心功能：</p>
+<ul>
+<li>前置条件检查（Precondition Checking）：某一服务响应外部请求前，通过Envoy向Mixer发送Check请求，检查该请求是否满足一定的前提条件，包括白名单检查、ACL检查等。</li>
+<li>配额管理（Quota Management）：当多个请求发生资源竞争时，通过配额管理机制可以实现对资源的有效管理。</li>
+<li>要测报告上报（elemetry Reporting）：该服务处理完请求后，通过Envoy向Mixer上报日志和监控等数据。</li>
+</ul>
+<p>要深入了解Mixer，我们先对如下几个概念介绍：</p>
+<h2 id="attribute（属性）"><a href="#attribute（属性）" class="headerlink" title="attribute（属性）"></a>attribute（属性）</h2><p>大部分attributes由Envoy提供。Istio用<a href="https://preliminary.istio.io/docs/concepts/policy-and-control/attributes.html" target="_blank" rel="noopener">attributes</a>来控制服务在Service Mesh中运行时行为。attributes是有名称和类型的元数据，用来描述入口和出口流量和流量产生时的环境。attributes携带了一些具体信息，比如：API请求状态码、请求响应时间、TCP连接的原始地址等。</p>
+<h3 id="refrencedAttributes（被引用的属性）"><a href="#refrencedAttributes（被引用的属性）" class="headerlink" title="refrencedAttributes（被引用的属性）"></a>refrencedAttributes（被引用的属性）</h3><p>refrencedAttributes是Mixer Check时进行条件匹配后被使用的属性的集合。Envoy向Mixer发送的Check请求中传递的是属性的全集，refrencedAttributes只是该全集中被应用的一个子集。</p>
+<p>举个例子，Envoy某次发送的Check请求中发送的attributes为<code>{request.path: xyz/abc, request.size: 234,source.ip: 192.168.0.1}</code>，如Mixer中调度到的多个adapters只用到了<code>request.path</code>和<code>request.size</code>这两个属性。那么Check后返回的refrencedAttributes为<code>{request.path: xyz/abc, request.size: 234}</code>。</p>
+<p>为防止每次请求时Envoy都向Mixer中发送Check请求，Mixer中建立了一套复杂的缓存机制，使得大部分请求不需要向Mixer发送Check请求。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">request.path: xyz/abc</span><br><span class="line">request.size: <span class="number">234</span></span><br><span class="line">request.time: <span class="number">12</span>:<span class="number">34</span>:<span class="number">56.789</span> <span class="number">04</span>/<span class="number">17</span>/<span class="number">2017</span></span><br><span class="line">source.ip: <span class="number">192.168</span>.0.1</span><br><span class="line">destination.service: example</span><br></pre></td></tr></table></figure>
+<p>属性词汇由[_.a-z0-9]组成，其中”.”为命名空间分隔符，所有属性词汇可以查看<a href="https://preliminary.istio.io/docs/reference/config/mixer/attribute-vocabulary.html" target="_blank" rel="noopener">这里</a>，属性类型可以查看<a href="https://github.com/istio/api/blob/master/policy/v1beta1/value_type.proto" target="_blank" rel="noopener">这里</a>。</p>
+<h2 id="adapter（适配器）"><a href="#adapter（适配器）" class="headerlink" title="adapter（适配器）"></a>adapter（适配器）</h2><p>Mixer是一个高度模块化、可扩展组件，内部提供了多个适配器(<a href="https://link.jianshu.com/?t=https%3A%2F%2Fgithub.com%2Fistio%2Fistio%2Ftree%2Fmaster%2Fmixer%2Fadapter" target="_blank" rel="noopener">adapter</a>)。<br>Envoy提供request级别的属性（<a href="https://link.jianshu.com/?t=https%3A%2F%2Fistio.io%2Fdocs%2Fconcepts%2Fpolicy-and-control%2Fattributes.html" target="_blank" rel="noopener">attributes</a>）数据。</p>
+<p>adapters基于这些attributes来实现日志记录、监控指标采集展示、配额管理、ACL检查等功能。Istio内置的部分adapters举例如下：</p>
+<ul>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/circonus" title="circonus" target="_blank" rel="noopener">circonus</a>：一个微服务监控分析平台。</li>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/cloudwatch" title="cloudwatch" target="_blank" rel="noopener">cloudwatch</a>：一个针对AWS云资源监控的工具。</li>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/fluentd" title="fluentd" target="_blank" rel="noopener">fluentd</a>：一款开源的日志采集工具。</li>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/prometheus" title="prometheus" target="_blank" rel="noopener">prometheus</a>：一款开源的时序数据库，非常适合用来存储监控指标数据。</li>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/statsd" title="statsd" target="_blank" rel="noopener">statsd</a>：一款采集汇总应用指标的工具。</li>
+<li><a href="https://github.com/istio/istio/tree/master/mixer/adapter/stdio" title="stdio" target="_blank" rel="noopener">stdio</a>：stdio适配器使Istio能将日志和metrics输出到本地，结合内置的ES、Grafana就可以查看相应的日志或指标了。</li>
+</ul>
+<p><img src="https://upload-images.jianshu.io/upload_images/11974228-8c4beb3968f8b333.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="mixer处理请求流程"></p>
+<h2 id="template（模板）"><a href="#template（模板）" class="headerlink" title="template（模板）"></a>template（模板）</h2><p>对于一个网络请求，Mixer通常会调用两个rpc：Check和Report。不同的adapter需要不同的attributes，template定义了attributes到adapter输入数据的映射的schema，一个适配器可以支持多个template。一个上报metric数据的模板如下所示：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">"config.istio.io/v1alpha2"</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">metric</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">requestsize</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">istio-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  value:</span> <span class="string">request.size</span> <span class="string">| 0</span></span><br><span class="line"><span class="string"></span><span class="attr">  dimensions:</span></span><br><span class="line"><span class="attr">    source_service:</span> <span class="string">source.service</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    source_version:</span> <span class="string">source.labels["version"]</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    destination_service:</span> <span class="string">destination.service</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    destination_version:</span> <span class="string">destination.labels["version"]</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    response_code:</span> <span class="string">response.code</span> <span class="string">| 200</span></span><br><span class="line"><span class="string"></span><span class="attr">  monitored_resource_type:</span> <span class="string">'"UNSPECIFIED"'</span></span><br></pre></td></tr></table></figure>
+<p>模板字段的值可以是字面量或者<a href="https://istio.io/docs/reference/config/mixer/expression-language.html" target="_blank" rel="noopener">表达式</a>，如果时表达式，则表达式的值类型必须与字段的数据类型一致。</p>
+<h2 id="Mixer配置文件"><a href="#Mixer配置文件" class="headerlink" title="Mixer配置文件"></a>Mixer配置文件</h2><p>Mixer的yaml配置可以抽象成下述三种类型：<strong>Handler</strong>、<strong>Instance</strong>、<strong>Rule</strong><br>这三种类型主要通过yaml中的kind字段做区分，kind值有如下几种：</p>
+<ul>
+<li><a href="https://preliminary.istio.io/docs/reference/config/policy-and-telemetry/adapters/" target="_blank" rel="noopener">adapter kind</a>：表示配置段为Handler。</li>
+<li><a href="https://preliminary.istio.io/docs/reference/config/policy-and-telemetry/templates/" target="_blank" rel="noopener">template kind</a>：表示配置段为Template。</li>
+<li>“rule”：表示配置段为Rule.</li>
+</ul>
+<h4 id="Handler（处理者）"><a href="#Handler（处理者）" class="headerlink" title="Handler（处理者）"></a>Handler（处理者）</h4><p>一个handler是配置好的adpater的实例。handler从yaml配置文件中取出adapter需要的配置数据。一个典型的promethues handler配置如下所示：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">config.istio.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">prometheus</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">handler</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">istio-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  metrics:</span></span><br><span class="line"><span class="attr">  - name:</span> <span class="string">request_count</span></span><br><span class="line"><span class="attr">    instance_name:</span> <span class="string">requestcount.metric.istio-system</span></span><br><span class="line"><span class="attr">    kind:</span> <span class="string">COUNTER</span></span><br><span class="line"><span class="attr">    label_names:</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">destination_service</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">destination_version</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">response_code</span></span><br></pre></td></tr></table></figure>
+<p>对于handler而言，<code>{metadata.name}.{kind}.{metadata.namespace}</code>是其完全限定名（Fully Qualified name），上述handler的完全限定名是<code>handler.prometheus.istio-system</code>，完全限定名是全局唯一的。</p>
+<p>adapter的配置信息定义在spec段中，每个adapter配置的格式都有所区别，可以从[这里]查看(<a href="https://istio.io/docs/reference/config/adapters/)指定的adapter配置格式。" target="_blank" rel="noopener">https://istio.io/docs/reference/config/adapters/)指定的adapter配置格式。</a></p>
+<h4 id="Instance（请求实例）"><a href="#Instance（请求实例）" class="headerlink" title="Instance（请求实例）"></a>Instance（请求实例）</h4><p>instance定义了attributes到adapter输入的映射，一个处理requestduration metric数据的实例配置如下所示：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">config.istio.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">metric</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">requestduration</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">istio-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  value:</span> <span class="string">response.duration</span> <span class="string">| "0ms"</span></span><br><span class="line"><span class="string"></span><span class="attr">  dimensions:</span></span><br><span class="line"><span class="attr">    destination_service:</span> <span class="string">destination.service</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    destination_version:</span> <span class="string">destination.labels["version"]</span> <span class="string">| "unknown"</span></span><br><span class="line"><span class="string"></span><span class="attr">    response_code:</span> <span class="string">response.code</span> <span class="string">| 200</span></span><br><span class="line"><span class="string"></span><span class="attr">  monitored_resource_type:</span> <span class="string">'"UNSPECIFIED"'</span></span><br></pre></td></tr></table></figure>
+<p>完全限定名（Full Qualified Name）上述instance的</p>
+<h4 id="Rule（规则）"><a href="#Rule（规则）" class="headerlink" title="Rule（规则）"></a>Rule（规则）</h4><p>Rule定义了什么instance生效的条件，一个简单的Rule配置如下所示：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">config.istio.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">rule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">promhttp</span></span><br><span class="line"><span class="attr">  namespace:</span> <span class="string">istio-system</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  match:</span> <span class="string">destination.service</span> <span class="string">==</span> <span class="string">"service1.ns.svc.cluster.local"</span> <span class="string">&amp;&amp;</span> <span class="string">request.headers["x-user"]</span> <span class="string">==</span> <span class="string">"user1"</span></span><br><span class="line"><span class="attr">  actions:</span></span><br><span class="line"><span class="attr">  - handler:</span> <span class="string">handler.prometheus</span></span><br><span class="line"><span class="attr">    instances:</span></span><br><span class="line"><span class="bullet">    -</span> <span class="string">requestduration.metric.istio-system</span></span><br></pre></td></tr></table></figure>
+<p>上述例子中，定义的Rule为：对目标服务为service1.ns.svc.cluster.local且request.headers[“x-user”] 为user1的请求，我们才应用<code>requestduration.metric.istio-system</code>这个instance。</p>
+<h1 id="Mixer工作流程源码分析"><a href="#Mixer工作流程源码分析" class="headerlink" title="Mixer工作流程源码分析"></a>Mixer工作流程源码分析</h1><p>上面简单介绍了Mixer相关概念，下面我们从源码出发来对Mixer工作流程做分析。</p>
+<h2 id="编译mixer二进制文件和docker镜像"><a href="#编译mixer二进制文件和docker镜像" class="headerlink" title="编译mixer二进制文件和docker镜像"></a>编译mixer二进制文件和docker镜像</h2><p>先看Makfile：<br><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">···</span><br><span class="line">MIXER_GO_BINS:=$&#123;ISTIO_OUT&#125;/mixs $&#123;ISTIO_OUT&#125;/mixc</span><br><span class="line"><span class="section">mixc: # Mixer客户端，通过mixc我们可以和运行的mixer进行交互。</span></span><br><span class="line">	bin/gobuild.sh $&#123;ISTIO_OUT&#125;/mixc istio.io/istio/pkg/version ./mixer/cmd/mixc</span><br><span class="line"><span class="section">mixs: # Mixer服务端，和Envoy、adapter交互。部署Istio的时候随之启动。</span></span><br><span class="line">	bin/gobuild.sh $&#123;ISTIO_OUT&#125;/mixs istio.io/istio/pkg/version ./mixer/cmd/mixs</span><br><span class="line">···</span><br><span class="line"><span class="keyword">include</span> tools/istio-docker.mk <span class="comment"># 引入编译docker镜像的Makefile文件。</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<p>Makefile中定义了mixs(mixer server)和mixc(mixer client)的编译流程。使用指令<code>make mixs mixc</code>编译好二进制文件后，再编译docker镜像。istio-docker.mk中编译mixer镜像相关指令如下：</p>
+<figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">MIXER_DOCKER:=docker.mixer docker.mixer_debug</span><br><span class="line"><span class="variable">$(MIXER_DOCKER)</span>: mixer/docker/Dockerfile$<span class="variable">$(<span class="built_in">suffix</span> $<span class="variable">$@</span>)</span> \</span><br><span class="line">		<span class="variable">$(ISTIO_DOCKER)</span>/ca-certificates.tgz <span class="variable">$(ISTIO_DOCKER)</span>/mixs | <span class="variable">$(ISTIO_DOCKER)</span></span><br><span class="line">	<span class="variable">$(DOCKER_RULE)</span></span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+<p>执行<code>make docker.mixer</code>会在本地编译mixer镜像，依据的dockerfile是mixer/docker/Dockerfile.mixer，如下所示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">FROM scratch</span><br><span class="line"></span><br><span class="line"># obtained from debian ca-certs deb using fetch_cacerts.sh</span><br><span class="line">ADD ca-certificates.tgz /</span><br><span class="line">ADD mixs /usr/local/bin/</span><br><span class="line"></span><br><span class="line">ENTRYPOINT [&quot;/usr/local/bin/mixs&quot;, &quot;server&quot;]</span><br><span class="line">CMD [&quot;--configStoreURL=fs:///etc/opt/mixer/configroot&quot;,&quot;--configStoreURL=k8s://&quot;]</span><br></pre></td></tr></table></figure>
+<p>可以知道容器启动时执行的mixs指令为<code>/usr/local/bin/mixs server --configStoreURL=fs:///etc/opt/mixer/configroot --configStoreURL=k8s://</code></p>
+<h2 id="Mixer-Server启动流程"><a href="#Mixer-Server启动流程" class="headerlink" title="Mixer Server启动流程"></a>Mixer Server启动流程</h2><p>mixs启动入口：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// supportedTemplates 从mixer/pkg/template包获取所有注册的模板信息。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">supportedTemplates</span><span class="params">()</span> <span class="title">map</span>[<span class="title">string</span>]<span class="title">template</span>.<span class="title">Info</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> generatedTmplRepo.SupportedTmplInfo</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// supportedAdapters 从mixer/pkg/adapter包获取所有注册的适配器信息。</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">supportedAdapters</span><span class="params">()</span> []<span class="title">adptr</span>.<span class="title">InfoFn</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> adapter.Inventory()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 构造cobra.Command实例，mixs server子命令设计在serverCmd中定义。</span></span><br><span class="line">	rootCmd := cmd.GetRootCmd(os.Args[<span class="number">1</span>:], supportedTemplates(), supportedAdapters(), shared.Printf, shared.Fatalf)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> err := rootCmd.Execute(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		os.Exit(<span class="number">-1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>mixs server子命令在istio/mixer/cmd/mixs/cmd/server.go#serverCmd中定义：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">serverCmd</span><span class="params">(info <span class="keyword">map</span>[<span class="keyword">string</span>]template.Info, adapters []adapter.InfoFn, printf, fatalf shared.FormatFn)</span> *<span class="title">cobra</span>.<span class="title">Command</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">	serverCmd := &amp;cobra.Command&#123;</span><br><span class="line">		Use:   <span class="string">"server"</span>,</span><br><span class="line">		Short: <span class="string">"Starts Mixer as a server"</span>,</span><br><span class="line">		Run: <span class="function"><span class="keyword">func</span><span class="params">(cmd *cobra.Command, args []<span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">            <span class="comment">// 用户执行mixs server命令时，启动mixer gRPC server</span></span><br><span class="line">			runServer(sa, printf, fatalf) </span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// runServer函数启动mixer gRPC server</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">runServer</span><span class="params">(sa *server.Args, printf, fatalf shared.FormatFn)</span></span> &#123;</span><br><span class="line">	s, err := server.New(sa)</span><br><span class="line">	...</span><br><span class="line">	s.Run()</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>gRPC server启动主要逻辑在istio/mixer/pkg/server/server.go#newServer：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newServer</span><span class="params">(a *Args, p *patchTable)</span> <span class="params">(*Server, error)</span></span> &#123;</span><br><span class="line">	...</span><br><span class="line">	s := &amp;Server&#123;&#125;</span><br><span class="line">    <span class="comment">// 初始化API worker线程池</span></span><br><span class="line">	s.gp = pool.NewGoroutinePool(apiPoolSize, a.SingleThreaded)</span><br><span class="line">	s.gp.AddWorkers(apiPoolSize)</span><br><span class="line">    <span class="comment">// 初始化adapter worker线程池</span></span><br><span class="line">	s.adapterGP = pool.NewGoroutinePool(adapterPoolSize, a.SingleThreaded)</span><br><span class="line">	s.adapterGP.AddWorkers(adapterPoolSize)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造存放Mixer模板仓库</span></span><br><span class="line">	tmplRepo := template.NewRepository(a.Templates)</span><br><span class="line">    <span class="comment">// 构造存放adapter的map</span></span><br><span class="line">	adapterMap := config.AdapterInfoMap(a.Adapters, tmplRepo.SupportsTemplate)</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 构造Mixer runtime实例。runtime实例是Mixer运行时环境的主要入口。</span></span><br><span class="line">    <span class="comment">// 它会监听配置变更，配置变更时会动态构造新的handler实例和dispatcher实例。</span></span><br><span class="line">    <span class="comment">// dispatcher会基于配置和attributes对请求进行调度，调用相应的adapters处理请求。</span></span><br><span class="line">	rt = p.newRuntime(st, templateMap, adapterMap, a.ConfigIdentityAttribute, a.ConfigDefaultNamespace,</span><br><span class="line">		s.gp, s.adapterGP, a.TracingOptions.TracingEnabled())</span><br><span class="line">    <span class="comment">// runtime实例开始监听配置变更，一旦配置变更，runtime实例会构造新的dispatcher。</span></span><br><span class="line">	p.runtimeListen(rt)</span><br><span class="line">	s.dispatcher = rt.Dispatcher()</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 注册Mixer gRPC server</span></span><br><span class="line">	mixerpb.RegisterMixerServer(s.server, api.NewGRPCServer(s.dispatcher, s.gp))</span><br><span class="line">    <span class="comment">// 启动ControlZ监听器，ControlZ提供了Istio的内省功能。Mixer与ctrlz集成时，会启动一个</span></span><br><span class="line">    <span class="comment">// web service监听器用于展示Mixer的环境变量、参数版本信息、内存信息、进程信息、metrics等。</span></span><br><span class="line">	<span class="keyword">go</span> ctrlz.Run(a.IntrospectionOptions, <span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> s, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中istio/mixer/pkg/api/grpcServer.go#NewGRPCServer函数中初始化了保存attributes的list和全局字典</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewGRPCServer</span><span class="params">(dispatcher dispatcher.Dispatcher, gp *pool.GoroutinePool)</span> <span class="title">mixerpb</span>.<span class="title">MixerServer</span></span> &#123;</span><br><span class="line">    <span class="comment">// 从globalList拷贝出list切片，list形如[]string&#123;"source.ip","source.port","request.id"...&#125;</span></span><br><span class="line">	list := attribute.GlobalList()</span><br><span class="line">    <span class="comment">// 将以attribute.name作为key，index作为value，构造map。形如:map[string][int]&#123;"source.ip":1, "source.port":2, "request.id":3...&#125;</span></span><br><span class="line">	globalDict := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int32</span>, <span class="built_in">len</span>(list))</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(list); i++ &#123;</span><br><span class="line">		globalDict[list[i]] = <span class="keyword">int32</span>(i)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;grpcServer&#123;</span><br><span class="line">		dispatcher:     dispatcher,</span><br><span class="line">		gp:             gp,</span><br><span class="line">		globalWordList: list,</span><br><span class="line">		globalDict:     globalDict,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Mixer启动的gRPC server定义了两个rpc：Check、Report。<br>istio/vendor/istio.io/api/mixer/v1/service.proto#48行</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">service Mixer &#123;</span><br><span class="line">  <span class="comment">// Check 基于活动配置和Envoy提供的attributes，执行前置条件检查和配额管理。</span></span><br><span class="line">  rpc Check(CheckRequest) returns (CheckResponse) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Reports 基于活动配置和Envoy提供的attribues上报遥测数据（如logs和metrics）。</span></span><br><span class="line">  rpc Report(ReportRequest) returns (ReportResponse) &#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>CheckRequest、CheckResponse结构如下所示：</p>
+<figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">message CheckRequest &#123;</span><br><span class="line">  // QuotaParams 定义了配额管理相关的参数。</span><br><span class="line">  message QuotaParams &#123;</span><br><span class="line">    int64 amount = 1;     // amount 为可分配的配额总数</span><br><span class="line">    bool best_effort = 2; // best_effort 为真时，表示返回的配额数小于请求的配额数</span><br><span class="line">  &#125;</span><br><span class="line">  // CompressedAttributes 为压缩过的本次请求的attributes </span><br><span class="line">  CompressedAttributes attributes = 1 [(gogoproto.nullable) = false];</span><br><span class="line">  // global_word_count 为attribute字典单词总数，用于判断客户端和Mixer gRPC server所用的字典是否同步</span><br><span class="line">  uint32 global_word_count = 2;</span><br><span class="line">  // deduplication_id 用于某次rpc请求失败后重试</span><br><span class="line">  string deduplication_id = 3;</span><br><span class="line">  //  quotas 进行分配的配额表，key为用户自定义的配额名如“requestCount”</span><br><span class="line">  map&lt;string, QuotaParams&gt; quotas = 4 [(gogoproto.nullable) = false];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message CheckResponse &#123;</span><br><span class="line">  // PreconditionResult 前置条件检查结果</span><br><span class="line">  message PreconditionResult &#123;</span><br><span class="line">    // status 请求结果状态码，0表示成功</span><br><span class="line">    google.rpc.Status status = 1 [(gogoproto.nullable) = false];</span><br><span class="line">    // valid_duration 用于判断本次结果是否合法的时间总数</span><br><span class="line">    google.protobuf.Duration valid_duration = 2 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];</span><br><span class="line">    // valid_use_count 用于判断本次结果是否合法的使用次数总数</span><br><span class="line">    int32 valid_use_count = 3;</span><br><span class="line">    // CompressedAttributes 返回的attributes数据，是请求的attributes和Mixer配置产生的attributes的集合</span><br><span class="line">    CompressedAttributes attributes = 4 [(gogoproto.nullable) = false];</span><br><span class="line">    // ReferencedAttributes Mixer adapters引用过的attritbues</span><br><span class="line">    ReferencedAttributes referenced_attributes = 5 [(gogoproto.nullable) = false];</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  // QuotaResult 配额检查结果</span><br><span class="line">  message QuotaResult &#123;</span><br><span class="line">    google.protobuf.Duration valid_duration = 1 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];</span><br><span class="line">    // 授予的配额总数</span><br><span class="line">    int64 granted_amount = 2;</span><br><span class="line">    ReferencedAttributes referenced_attributes = 5 [(gogoproto.nullable) = false];</span><br><span class="line">  &#125;</span><br><span class="line">  PreconditionResult precondition = 2 [(gogoproto.nullable) = false];</span><br><span class="line">  map&lt;string, QuotaResult&gt; quotas = 3 [(gogoproto.nullable) = false];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ReportRequest、ReportResponse结构如下所示：</p>
+<figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">message ReportRequest &#123;</span><br><span class="line">  // CompressedAttributes 本次请求的attributes数据</span><br><span class="line">  repeated CompressedAttributes attributes = 1 [(gogoproto.nullable) = false];</span><br><span class="line">  // default_words 默认的message级别的attributes字典</span><br><span class="line">  repeated string default_words = 2;</span><br><span class="line">  // global_word_count 全局attribute字典总数</span><br><span class="line">  uint32 global_word_count = 3;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message ReportResponse &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="Check请求执行细节"><a href="#Check请求执行细节" class="headerlink" title="Check请求执行细节"></a>Check请求执行细节</h2><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *grpcServer)</span> <span class="title">Check</span><span class="params">(legacyCtx legacyContext.Context, req *mixerpb.CheckRequest)</span> <span class="params">(*mixerpb.CheckResponse, error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 构造基于proto的属性包protoBag。protoBag提供了对一组attributes进行访问、修改的机制。</span></span><br><span class="line">	protoBag := attribute.NewProtoBag(&amp;req.Attributes, s.globalDict, s.globalWordList)</span><br><span class="line">    <span class="keyword">defer</span> protoBag.Done()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 构造可变的（执行check方法后会变化）属性包checkBag </span></span><br><span class="line">	checkBag := attribute.GetMutableBag(protoBag)</span><br><span class="line">	<span class="keyword">defer</span> checkBag.Done()</span><br><span class="line">    <span class="comment">// 执行dispatcher的预处理过程，s.dispatcher为runtime实例impl。</span></span><br><span class="line">    <span class="comment">// impl的Preprocess方法会调度生成属性相关的adapter，比如kubernetes adapter。</span></span><br><span class="line">	s.dispatcher.Preprocess(legacyCtx, protoBag, checkBag);</span><br><span class="line">    <span class="comment">// 获取属性包中被引用的属性快照snapApa，snapApa能在每次check和quota处理中重复使用。</span></span><br><span class="line">	snapApa := protoBag.SnapshotReferencedAttributes()</span><br><span class="line">    <span class="comment">// 执行dispatcher的前置条件检查，Check方法内部会计算被引用的属性并同步到protoBag中。</span></span><br><span class="line">	cr, err := s.dispatcher.Check(legacyCtx, checkBag)</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 构造Check rpc response实例</span></span><br><span class="line">	resp := &amp;mixerpb.CheckResponse&#123;</span><br><span class="line">		Precondition: mixerpb.CheckResponse_PreconditionResult&#123;</span><br><span class="line">			ValidDuration:        cr.ValidDuration,</span><br><span class="line">			ValidUseCount:        cr.ValidUseCount,</span><br><span class="line">			Status:               cr.Status,</span><br><span class="line">			ReferencedAttributes: protoBag.GetReferencedAttributes(s.globalDict, globalWordCount),</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果前置条件检查通过且配额表总数大于0，则计算新的配额</span></span><br><span class="line">	<span class="keyword">if</span> status.IsOK(resp.Precondition.Status) &amp;&amp; <span class="built_in">len</span>(req.Quotas) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		resp.Quotas = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]mixerpb.CheckResponse_QuotaResult, <span class="built_in">len</span>(req.Quotas))</span><br><span class="line">        <span class="comment">// 遍历配额表，计算每个配额是否为引用配额</span></span><br><span class="line">		<span class="keyword">for</span> name, param := <span class="keyword">range</span> req.Quotas &#123;</span><br><span class="line">			qma := &amp;dispatcher.QuotaMethodArgs&#123;</span><br><span class="line">				Quota:           name,</span><br><span class="line">				Amount:          param.Amount,</span><br><span class="line">				DeduplicationID: req.DeduplicationId + name,</span><br><span class="line">				BestEffort:      param.BestEffort,</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			protoBag.RestoreReferencedAttributes(snapApa)</span><br><span class="line">			crqr := mixerpb.CheckResponse_QuotaResult&#123;&#125;</span><br><span class="line">			<span class="keyword">var</span> qr *adapter.QuotaResult</span><br><span class="line">            <span class="comment">// 执行dispacher的配额处理方法。istio/mixer/pkg/runtime/dispatcher/dispatcher.go#func (d *Impl) Quota(）</span></span><br><span class="line">			qr, err = s.dispatcher.Quota(legacyCtx, checkBag, qma)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				err = fmt.Errorf(<span class="string">"performing quota alloc failed: %v"</span>, err)</span><br><span class="line">				log.Errora(<span class="string">"Quota failure:"</span>, err.Error())</span><br><span class="line">			&#125; <span class="keyword">else</span> <span class="keyword">if</span> qr == <span class="literal">nil</span> &#123;</span><br><span class="line">				crqr.ValidDuration = defaultValidDuration</span><br><span class="line">				crqr.GrantedAmount = qma.Amount</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="keyword">if</span> !status.IsOK(qr.Status) &#123;</span><br><span class="line">					log.Debugf(<span class="string">"Quota denied: %v"</span>, qr.Status)</span><br><span class="line">				&#125;</span><br><span class="line">				crqr.ValidDuration = qr.ValidDuration</span><br><span class="line">				crqr.GrantedAmount = qr.Amount</span><br><span class="line">			&#125;</span><br><span class="line">            <span class="comment">// 根据全局attribute字典来计算被引用的attributes</span></span><br><span class="line">			crqr.ReferencedAttributes = protoBag.GetReferencedAttributes(s.globalDict, globalWordCount)</span><br><span class="line">			resp.Quotas[name] = crqr</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 返回Check gRPC相应结果</span></span><br><span class="line">	<span class="keyword">return</span> resp, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Report请求执行整体逻辑和Check相似，本文暂不做解析。</p>
+<h1 id="Mixer适配器工作流程"><a href="#Mixer适配器工作流程" class="headerlink" title="Mixer适配器工作流程"></a>Mixer适配器工作流程</h1><ul>
+<li>Mixer server启动。<ul>
+<li>初始化adapter worker线程池</li>
+<li>初始化Mixer模板仓库。</li>
+<li>初始化adapter builder表。</li>
+<li>初始化runtime实例。</li>
+<li>注册并启动gRPC server。</li>
+</ul>
+</li>
+<li>某一服务外部请求被envoy拦截，envoy根据请求生成指定的attributes，attributes作为参数之一向Mixer发起Check rpc请求。</li>
+<li>Mixer 进行前置条件检查和配额检查，调用相应的adapter做处理，并返回相应结果。</li>
+<li>Envoy分析结果，决定是否执行请求或拒绝请求。若可以执行请求则执行请求。请求完成后再向Mixer gRPC服务发起Report rpc请求，上报遥测数据。</li>
+<li>Mixer后端的adapter基于遥测数据做进一步处理。</li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>郑伟，小米信息技术部基础架构组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP体系、内网OA体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#istio" >
+    <span class="tag-code">istio</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2018/05/03/istio-src-2/">
+        <span class="nav-arrow">← </span>
+        
+          Istio 源码解析系列(二)-服务治理配置生效流程解析
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2018/10/25/naftis/">
+        
+          小米正式开源 Istio 管理面板 Naftis
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#概念介绍"><span class="toc-nav-text">概念介绍</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#attribute（属性）"><span class="toc-nav-text">attribute（属性）</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#refrencedAttributes（被引用的属性）"><span class="toc-nav-text">refrencedAttributes（被引用的属性）</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#adapter（适配器）"><span class="toc-nav-text">adapter（适配器）</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#template（模板）"><span class="toc-nav-text">template（模板）</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Mixer配置文件"><span class="toc-nav-text">Mixer配置文件</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#Handler（处理者）"><span class="toc-nav-text">Handler（处理者）</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#Instance（请求实例）"><span class="toc-nav-text">Instance（请求实例）</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#Rule（规则）"><span class="toc-nav-text">Rule（规则）</span></a></li></ol></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#Mixer工作流程源码分析"><span class="toc-nav-text">Mixer工作流程源码分析</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#编译mixer二进制文件和docker镜像"><span class="toc-nav-text">编译mixer二进制文件和docker镜像</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Mixer-Server启动流程"><span class="toc-nav-text">Mixer Server启动流程</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Check请求执行细节"><span class="toc-nav-text">Check请求执行细节</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#Mixer适配器工作流程"><span class="toc-nav-text">Mixer适配器工作流程</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2018/05/11/istio-src-3/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "istio源码解析系列(三)-Mixer工作流程浅析",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

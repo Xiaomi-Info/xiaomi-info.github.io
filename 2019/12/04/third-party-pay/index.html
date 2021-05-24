@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      如何高效对接第三方支付 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>如何高效对接第三方支付</h2>
+  <p class="post-date">2019-12-04</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="如何高效对接第三方支付"><a href="#如何高效对接第三方支付" class="headerlink" title="如何高效对接第三方支付"></a>如何高效对接第三方支付</h1><p><strong>[作者简介]</strong> 逄志强，海外小米网研发工程师，目前主要负责小米网服务构建和研发工作。</p>
+<p>海外小米网是小米集团自建的电商网站，是小米集团重要的销售渠道之一。电商购物流程中核心的一环是用户支付。目前我们已经服务 30 个国家和地区，不同国家往往需要对接不同的第三方支付公司，所以最近两年，海外研发组对接了大量的第三方支付公司，积累了一定的经验。</p>
+<p>本文主要分享如何对接第三方支付，以及在生产上实际遇到的一些问题，避免大家重复踩坑。</p>
+<h2 id="一、五个接口"><a href="#一、五个接口" class="headerlink" title="一、五个接口"></a>一、五个接口</h2><p>先简单阐述一下，对接第三方支付时，需要对接如下 5 个核心接口。</p>
+<h3 id="1-发起支付"><a href="#1-发起支付" class="headerlink" title="1.发起支付"></a>1.发起支付</h3><p>该接口主要用于从第三方获取 token，当用户跳转到第三方网站进行支付时，第三方支付公司用来校验是否是合法的支付请求。</p>
+<h3 id="2-支付结果查询"><a href="#2-支付结果查询" class="headerlink" title="2.支付结果查询"></a>2.支付结果查询</h3><p>商户用该接口来判断支付结果成功与否。</p>
+<h3 id="3-退款"><a href="#3-退款" class="headerlink" title="3.退款"></a>3.退款</h3><p>商户用该接口进行退款。</p>
+<h3 id="4-退款查询"><a href="#4-退款查询" class="headerlink" title="4.退款查询"></a>4.退款查询</h3><p>商户用该接口来判断退款结果成功与否。</p>
+<h3 id="5-获取支付成功订单列表接口"><a href="#5-获取支付成功订单列表接口" class="headerlink" title="5.获取支付成功订单列表接口"></a>5.获取支付成功订单列表接口</h3><p>商户用该接口获取第三方某日所有成功支付订单列表，用于对账时使用。</p>
+<h2 id="二、四个流程"><a href="#二、四个流程" class="headerlink" title="二、四个流程"></a>二、四个流程</h2><p>只需要对接完如下四个流程，便可完成第三方支付的对接。</p>
+<ul>
+<li>发起支付请求</li>
+<li>同步回调和异步回调</li>
+<li>退款和退款查询</li>
+<li>对账</li>
+</ul>
+<h3 id="1-发起支付请求"><a href="#1-发起支付请求" class="headerlink" title="1.发起支付请求"></a>1.发起支付请求</h3><p>下面的时序图中有几个名词，此处先给大家介绍一下</p>
+<ul>
+<li>电商系统：海外商城的服务系统，负责提供整个购物流程</li>
+<li>支付网关：我们将支付抽离为一个单独的系统，该系统用来对接所有支付</li>
+</ul>
+<h4 id="时序图"><a href="#时序图" class="headerlink" title="时序图"></a>时序图</h4><img src="/2019/12/04/third-party-pay/image-20191103164155709.png">
+<h4 id="伪代码"><a href="#伪代码" class="headerlink" title="伪代码"></a>伪代码</h4><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#商城系统</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">pay</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">#1.请求支付网关，获取发起支付必要信息（token，跳转url）</span></span><br><span class="line">    $res = <span class="keyword">$this</span>-&gt;payRequest($orderInfo,$sign);</span><br><span class="line">    <span class="comment">#2.根据返回结果，跳转到第三方，进行支付</span></span><br><span class="line">    redirect($res[<span class="string">'url'</span>]);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">#支付网关</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">payment</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">#1.检查请求数据的签名</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;checkSign();</span><br><span class="line">    <span class="comment">#2.初始化订单数据，将传入参数格式化为需要的结构</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;initData();</span><br><span class="line">    <span class="comment">#3.参数检查</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;checkParam();</span><br><span class="line">    <span class="comment">#4.记录请求日志</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;savePayLog();</span><br><span class="line">    <span class="comment">#5.发起支付</span></span><br><span class="line">    <span class="comment">#5.1不是首次支付，则检查是否支付成功过</span></span><br><span class="line">    <span class="keyword">if</span>(!$isFirstRequest)&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;checkPaymentStatus();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">#5.2生成新的支付号</span></span><br><span class="line">    $transactionCode = <span class="keyword">$this</span>-&gt;getNewTransactionCode();</span><br><span class="line">    <span class="comment">#5.3请求第三方，获取token，跳转链接等信息</span></span><br><span class="line">    $res = <span class="keyword">$this</span>-&gt;pay($transactionCode);</span><br><span class="line">    <span class="keyword">return</span> $res;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="说明点"><a href="#说明点" class="headerlink" title="说明点"></a>说明点</h4><ul>
+<li>签名校验：请求支付接口域名为内网域名，使用签名校验，让系统更加安全</li>
+<li>记录请求日志：请求除了记录到 log 文件中，建议落库，方便日后查找</li>
+<li>非首次支付判断支付状态：防止重复支付，该判断可在流量高峰期降配掉</li>
+<li><strong>生成新的支付号</strong>：部分第三方支付公司，规定同一个支付号，无论支付成功与否只能使用一次。目前，在小米网，当订单创建成功后，订单号不会改变，所以每次用户发起支付后，支付网关会生成新的支付号，使用该支付号请求第三方。该方案会引入<strong>重复支付问题</strong>，在后面章节阐述解决方案。</li>
+</ul>
+<h4 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h4><img src="/2019/12/04/third-party-pay/image-20191103220819084.png">
+<img src="/2019/12/04/third-party-pay/image-20191103221755220.png">
+<img src="/2019/12/04/third-party-pay/image-20191103221520717.png">
+<ul>
+<li>surl：支付后，第三方会调用该 url，告知支付网关支付结果，这个流程叫同步回调</li>
+<li>pay_url：需要跳转到第三方的 url</li>
+<li>hash：第三方用 hash 来检验该请求是否合法</li>
+</ul>
+<p>​</p>
+<h3 id="2-同步回调和异步回调"><a href="#2-同步回调和异步回调" class="headerlink" title="2.同步回调和异步回调"></a>2.同步回调和异步回调</h3><p>支付后，第三方支付会通知支付网关，支付结果。通知的实现一般会有两种方案</p>
+<ul>
+<li><strong>同步回调</strong>：支付后，立即回调支付网关提供的回调接口。该接口 url 一般在发起支付时，作为参数传递给第三方</li>
+<li><strong>异步回调</strong>：支付后，第三方支付会调用对接方提供的 API，该 API 一般是对接的时候提供给第三方，第三方配置在自己系统中的。异步回调有重试机制，如果对接方没有返回指定结果，如 httpcode 不为 200，则会在一段时间后重试，直到达到指定重试上线后，会停止重试。</li>
+</ul>
+<p><strong>同步回调和异步回调是支付系统稳定性和准确性的重要保证。</strong>这两个流程核心逻辑一致，所以此处放在一起讲述。</p>
+<h4 id="时序图-1"><a href="#时序图-1" class="headerlink" title="时序图"></a>时序图</h4><img src="/2019/12/04/third-party-pay/image-20191103225425658.png">
+<h4 id="伪代码-1"><a href="#伪代码-1" class="headerlink" title="伪代码"></a>伪代码</h4><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#2.同步回调 异步回调</span></span><br><span class="line"><span class="comment">#支付网关</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">callback</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">#1.记录请求日志</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;savePayLog();</span><br><span class="line">    <span class="comment">#2.检查第三方传入数据是否合法</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;checkCallbackData();</span><br><span class="line">    <span class="comment">#3.检查第三方签名是否合法</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;checkign();</span><br><span class="line">    <span class="comment">#4.根据传入数据/调用第三方查询接口判断该订单在第三方系统里是否支付成功</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;checkPaymentStatus();</span><br><span class="line">    <span class="comment">#5.记录返回数据</span></span><br><span class="line">    <span class="keyword">$this</span>-&gt;saveResponseLog();</span><br><span class="line">    <span class="comment">#6.更改订单状态</span></span><br><span class="line">    <span class="comment">#6.1如果订单是待支付状态，则更新支付网关内的订单状态，同时通知订单中心支付完成，可出库</span></span><br><span class="line">    <span class="keyword">if</span> ($orderStatus == <span class="string">"待支付"</span>) &#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;updateOrderStatusFinish();</span><br><span class="line">        <span class="keyword">$this</span>-&gt;notifyOC();</span><br><span class="line">        <span class="comment">#6.2如果订单已经支付完成</span></span><br><span class="line">    &#125; <span class="keyword">elseif</span>($orderStatus == <span class="string">"已经支付完成"</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span>(<span class="string">"相同的支付方式，第三方交易号也相同"</span>)&#123;</span><br><span class="line">            <span class="comment">#6.2.1重复通知，幂等处理</span></span><br><span class="line">            <span class="keyword">$this</span>-&gt;notifyOC();</span><br><span class="line">        &#125;<span class="keyword">elseif</span>(<span class="string">"相同的支付方式，不同的交易号"</span>)&#123;</span><br><span class="line">            <span class="comment">#6.2.2同渠道重复支付,将该信息记入重复支付表，进行退款</span></span><br><span class="line">            <span class="keyword">$this</span>-&gt;addRepeatPayment();</span><br><span class="line">        &#125;<span class="keyword">elseif</span>(<span class="string">"不同的支付方式"</span>)&#123;</span><br><span class="line">            <span class="comment">#6.2.3不同渠道重复支付，将该信息记入重复支付表，进行退款</span></span><br><span class="line">            <span class="keyword">$this</span>-&gt;addRepeatPayment();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">#7.根据订单状态，跳转到支付成功/失败页面</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="string">"是同步回调"</span>)&#123;</span><br><span class="line">        redirect(<span class="string">"电商支付成功/失败页面"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="说明点-1"><a href="#说明点-1" class="headerlink" title="说明点"></a>说明点</h4><ul>
+<li>日志：传入和返回数据都做记录</li>
+<li>签名校验：校验第三方签名十分重要，这是防止他人攻击的方案之一</li>
+<li>判断支付成功：情况允许条件下，建议请求第三方查询接口来判断是否支付成功，这是防止他人攻击的方案之二</li>
+<li>跳转支付成功/失败页面：当发起支付时，支付成功或者失败页面的 url 会传给支付网关。之所以请求支付时传递该 url，原因在于不同终端，url 不同。</li>
+<li>该流程需要两个定时脚本进行支撑<ul>
+<li>通知订单中心支付完成。因为更改支付系统的订单状态和通知订单中心未必会同时成功。</li>
+<li>重复支付订单自动退款</li>
+</ul>
+</li>
+</ul>
+<h4 id="实例-1"><a href="#实例-1" class="headerlink" title="实例"></a>实例</h4><img src="/2019/12/04/third-party-pay/image-20191103234746041.png">
+<img src="/2019/12/04/third-party-pay/image-20191103234833065.png">
+<img src="/2019/12/04/third-party-pay/image-20191103235105865.png">
+<h3 id="3-退款-1"><a href="#3-退款-1" class="headerlink" title="3.退款"></a>3.退款</h3><p>退款整体流程一般为，财务系统向支付网关发起退款请求，支付网关将退款记录到表。支付系统定时进行退款，财务系统定时查询退款状态。</p>
+<h4 id="时序图-2"><a href="#时序图-2" class="headerlink" title="时序图"></a>时序图</h4><img src="/2019/12/04/third-party-pay/image-20191104202629804.png">
+<h4 id="伪代码-2"><a href="#伪代码-2" class="headerlink" title="伪代码"></a>伪代码</h4><figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#3.退款</span></span><br><span class="line"><span class="comment">#支付网关</span></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">refund</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="comment">#1.获取待退款列表</span></span><br><span class="line">    $refundList = <span class="keyword">$this</span>-&gt;getNotRefundList();</span><br><span class="line">    <span class="keyword">foreach</span> ($refundList <span class="keyword">as</span> $item)&#123;</span><br><span class="line">        <span class="comment">#2.检查数据，订单是否支付成功，退款金额是否小于订单金额</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;checkRefundParams();</span><br><span class="line">        <span class="comment">#3.记录退款请求数据</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;saveRefundReqData();</span><br><span class="line">        <span class="comment">#4.查询退款结果</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;checkRefundStatus();</span><br><span class="line">        <span class="comment">#5.调用第三方接口进行退款</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;refund();</span><br><span class="line">        <span class="comment">#6.记录第三方返回数据</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;saveRefundResponse();</span><br><span class="line">        <span class="comment">#7.更新退款状态</span></span><br><span class="line">        <span class="keyword">$this</span>-&gt;updateRefundStatus();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="说明点-2"><a href="#说明点-2" class="headerlink" title="说明点"></a>说明点</h4><ul>
+<li><p><strong>退款类型</strong>：退款一般分为两种类型</p>
+<ul>
+<li><p>部分退款：有的第三方公司不支持，需要提前咨询</p>
+</li>
+<li><p>全额退款</p>
+</li>
+</ul>
+</li>
+<li><p><strong>待退款列表</strong>：建议同一个订单的多个退款单，确认处理完一个之后，再处理另一个</p>
+</li>
+<li><strong>退款相关状态</strong>：调用第三方接口状态 callStatus，退款结果状态 refundStatus。callStatus 成功，refundStatus 未成功，可定时查退款状态</li>
+<li>查询退款结果：可选，根据第三方 API 情况做判断</li>
+<li>日志：请求日志和返回日志都进行记录</li>
+</ul>
+<h3 id="4-对账"><a href="#4-对账" class="headerlink" title="4.对账"></a>4.对账</h3><p>对账的完成，需要第三方提供前一天的支付成功数据，然后和支付网关系统中当天的支付成功数据进行对比。</p>
+<p>对不上账的类型有：</p>
+<ul>
+<li><strong>支付网关有数据，第三方没有数据</strong><ul>
+<li>可能被黑客攻击了，用户没有真正支付，但是我们发货了</li>
+<li>代码有问题，用户没有完成支付，但是系统认为支付成功了</li>
+<li>第三方提供数据不全</li>
+</ul>
+</li>
+<li>支付网关没有数据，第三方有数据<ul>
+<li>用户支付成功，但是同步或者异步通知都失败了</li>
+</ul>
+</li>
+<li>金额不一致<ul>
+<li>代码有问题，电商发起支付金额和真正调用第三方金额不一致</li>
+<li>第三方提供数据有问题</li>
+</ul>
+</li>
+</ul>
+<p>对账是验证支付系统准确的重要一环，可以帮助开发人员今早发现很多问题，建议每一种支付方式都要支持，并且及时对账。</p>
+<h4 id="实例-2"><a href="#实例-2" class="headerlink" title="实例"></a>实例</h4><img src="/2019/12/04/third-party-pay/image-20191104204616206.png">
+<h2 id="三、支付进阶"><a href="#三、支付进阶" class="headerlink" title="三、支付进阶"></a>三、支付进阶</h2><p>完成上述四个流程后，就实现了支付渠道的对接。然后需要考虑支付网关的实现。支付网关包含多个支付渠道，对外部提供统一的接口。支付网关一般需要考虑如下问题：</p>
+<ul>
+<li><p>支付网关中接入多个第三方支付，如何设计使变动最小？</p>
+</li>
+<li><p>相同的银行，多个第三方支付支持，如何设计分配流量的系统？</p>
+</li>
+<li><p>如何监控每个第三方支付的成功率，并动态切换第三方支付？</p>
+</li>
+<li><p>如何做好风控？</p>
+</li>
+</ul>
+<p>这些问题的讲解涉及到很大的篇幅，今后会进行讲解。大家可以先自己思考一些解决方案。</p>
+<h3 id="下回预告"><a href="#下回预告" class="headerlink" title="下回预告"></a>下回预告</h3><p>到目前为止，已经介绍了对接支付渠道需要对接哪些接口，以及整体流程如何搭建。接下来将会介绍支付网关的设计以及如何灵活分配支付流量到各个支付渠道。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>逄志强，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com(武汉)</p>
+</section>
+    <!-- Tags START -->
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/11/27/golang-compiler-plan9/">
+        <span class="nav-arrow">← </span>
+        
+          走进Golang之运行与Plan9汇编
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/12/06/nsq-src/">
+        
+          走进 NSQ 源码细节
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#如何高效对接第三方支付"><span class="toc-nav-text">如何高效对接第三方支付</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#一、五个接口"><span class="toc-nav-text">一、五个接口</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#1-发起支付"><span class="toc-nav-text">1.发起支付</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-支付结果查询"><span class="toc-nav-text">2.支付结果查询</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#3-退款"><span class="toc-nav-text">3.退款</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-退款查询"><span class="toc-nav-text">4.退款查询</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-获取支付成功订单列表接口"><span class="toc-nav-text">5.获取支付成功订单列表接口</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#二、四个流程"><span class="toc-nav-text">二、四个流程</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#1-发起支付请求"><span class="toc-nav-text">1.发起支付请求</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#时序图"><span class="toc-nav-text">时序图</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#伪代码"><span class="toc-nav-text">伪代码</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#说明点"><span class="toc-nav-text">说明点</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#实例"><span class="toc-nav-text">实例</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-同步回调和异步回调"><span class="toc-nav-text">2.同步回调和异步回调</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#时序图-1"><span class="toc-nav-text">时序图</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#伪代码-1"><span class="toc-nav-text">伪代码</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#说明点-1"><span class="toc-nav-text">说明点</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#实例-1"><span class="toc-nav-text">实例</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#3-退款-1"><span class="toc-nav-text">3.退款</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#时序图-2"><span class="toc-nav-text">时序图</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#伪代码-2"><span class="toc-nav-text">伪代码</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#说明点-2"><span class="toc-nav-text">说明点</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-对账"><span class="toc-nav-text">4.对账</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#实例-2"><span class="toc-nav-text">实例</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#三、支付进阶"><span class="toc-nav-text">三、支付进阶</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#下回预告"><span class="toc-nav-text">下回预告</span></a></li></ol></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/12/04/third-party-pay/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "如何高效对接第三方支付",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

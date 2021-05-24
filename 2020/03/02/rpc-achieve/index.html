@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      浅析 RPC 与基本实现 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>浅析 RPC 与基本实现</h2>
+  <p class="post-date">2020-03-02</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="浅析-RPC-与基本实现"><a href="#浅析-RPC-与基本实现" class="headerlink" title="浅析 RPC 与基本实现"></a>浅析 RPC 与基本实现</h1><p><em><code>注：文中所用到的代码已上传至 github: https://github.com/fankongqiumu/storm.git</code></em></p>
+<p><strong>[作者简介]</strong> 孙浩，信息部售后组研发工程师</p>
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>本文主要论述的是“RPC 实现原理”，那么首先明确一个问题什么是 RPC 呢？RPC 是 Remote Procedure Call 的缩写，即，远程过程调用。RPC 是一个计算机通信协议。该协议允许运行于一台计算机的程序调用另一台计算机的子程序，而开发人员无需额外地为这个交互编程。<br>值得注意是，两个或多个应用程序都分布在不同的服务器上，它们之间的调用都像是本地方法调用一样。接下来我们便来分析一下一次 RPC 调用发生了些什么？</p>
+<h2 id="一次基本的-RPC-调用会涉及到什么？"><a href="#一次基本的-RPC-调用会涉及到什么？" class="headerlink" title="一次基本的 RPC 调用会涉及到什么？"></a>一次基本的 RPC 调用会涉及到什么？</h2><p>现在业界内比较流行的一些 RPC 框架，例如 Dubbo 提供的是<code>基于接口的远程方法调用</code>，即客户端只需要知道接口的定义即可调用远程服务。在 Java 中接口并不能直接调用实例方法，必须通过其实现类对象来完成此操作，这意味着客户端必须为这些接口生成<code>代理对象</code>，对此 Java 提供了 <code>Proxy</code>、<code>InvocationHandler</code> 生成动态代理的支持；生成了代理对象，那么每个具体的发方法是怎么调用的呢？jdk 动态代理生成的代理对象调用指定方法时实际会执行 <code>InvocationHandler</code> 中定义的 <code>#invoke</code> 方法，在该方法中完成远程方法调用并获取结果。</p>
+<p>抛开客户端，回过头来看 RPC 是两台计算机间的调用，实质上是两台主机间的<code>网络通信</code>，涉及到网络通信又必然会有<code>序列化、反序列化</code>，<code>编解码</code>等一些必须要考虑的问题；同时实际上现在大多系统都是集群部署的，多台主机/容器对外提供相同的服务，如果集群的节点数量很大的话，那么管理服务地址也将是一件十分繁琐的事情，常见的做法是各个服务节点将自己的地址和提供的服务列表注册到一个 <code>注册中心</code>，由 <code>注册中心</code> 来统一管理服务列表；这样的做法解决了一些问题同时为客户端增加了一项新的工作——那就是<code>服务发现</code>，通俗来说就是从注册中心中找到远程方法对应的服务列表并通过某种策略从中选取一个服务地址来完成网络通信。</p>
+<p>聊了客户端和 <code>注册中心</code>，另外一个重要的角色自然是服务端，服务端最重要的任务便是提供服务接口的真正实现并在某个端口上监听网络请求，监听到请求后从网络请求中获取到对应的参数（比如服务接口、方法、请求参数等），再根据这些参数通过<code>反射</code>的方式调用接口的真正实现获取结果并将其写入对应的响应流中。</p>
+<p>综上所述，一次基本的 RPC 调用流程大致如下：<br><img src="/2020/03/02/rpc-achieve/timing-diagram.png"></p>
+<h2 id="基本实现"><a href="#基本实现" class="headerlink" title="基本实现"></a>基本实现</h2><h3 id="服务端（生产者）"><a href="#服务端（生产者）" class="headerlink" title="服务端（生产者）"></a>服务端（生产者）</h3><ul>
+<li>服务接口</li>
+</ul>
+<p>在 RPC 中，生产者和消费者有一个共同的服务接口 API。如下，定义一个 HelloService 接口。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span>  服务接口</span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HelloService</span> </span>&#123;</span><br><span class="line">    <span class="function">String <span class="title">sayHello</span><span class="params">(String somebody)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>服务实现</li>
+</ul>
+<p>生产者要提供服务接口的实现，创建 HelloServiceImpl 实现类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span> 服务实现</span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HelloServiceImpl</span> <span class="keyword">implements</span> <span class="title">HelloService</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> String <span class="title">sayHello</span><span class="params">(String somebody)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"hello "</span> + somebody + <span class="string">"!"</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>服务注册</li>
+</ul>
+<p>本例使用 Spring 来管理 bean，采用自定义 xml 和解析器的方式来将服务实现类载入容器（当然也可以采用自定义注解的方式，此处不过多论述）并将服务接口信息注册到注册中心。<br>首先自定义<code>xsd</code>,</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">xsd:element</span> <span class="attr">name</span>=<span class="string">"service"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">xsd:complexType</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">xsd:complexContent</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">xsd:extension</span> <span class="attr">base</span>=<span class="string">"beans:identifiedType"</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"interface"</span> <span class="attr">type</span>=<span class="string">"xsd:string"</span> <span class="attr">use</span>=<span class="string">"required"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"timeout"</span> <span class="attr">type</span>=<span class="string">"xsd:int"</span> <span class="attr">use</span>=<span class="string">"required"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"serverPort"</span> <span class="attr">type</span>=<span class="string">"xsd:int"</span> <span class="attr">use</span>=<span class="string">"required"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"ref"</span> <span class="attr">type</span>=<span class="string">"xsd:string"</span> <span class="attr">use</span>=<span class="string">"required"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"weight"</span> <span class="attr">type</span>=<span class="string">"xsd:int"</span> <span class="attr">use</span>=<span class="string">"optional"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"workerThreads"</span> <span class="attr">type</span>=<span class="string">"xsd:int"</span> <span class="attr">use</span>=<span class="string">"optional"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"appKey"</span> <span class="attr">type</span>=<span class="string">"xsd:string"</span> <span class="attr">use</span>=<span class="string">"required"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">xsd:attribute</span> <span class="attr">name</span>=<span class="string">"groupName"</span> <span class="attr">type</span>=<span class="string">"xsd:string"</span> <span class="attr">use</span>=<span class="string">"optional"</span>/&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">xsd:extension</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">xsd:complexContent</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">xsd:complexType</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">xsd:element</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>分别指定 schema 和 xmd，schema 和对应 handler 的映射：</p>
+<p><code>schema</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http\://www.storm.com/schema/storm-service.xsd=META-INF/storm-service.xsd</span><br><span class="line">http\://www.storm.com/schema/storm-reference.xsd=META-INF/storm-reference.xsd</span><br></pre></td></tr></table></figure>
+<p><code>handler</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">http\://www.storm.com/schema/storm-service=com.hsunfkqm.storm.framework.spring.StormServiceNamespaceHandler</span><br><span class="line">http\://www.storm.com/schema/storm-reference=com.hsunfkqm.storm.framework.spring.StormRemoteReferenceNamespaceHandler</span><br></pre></td></tr></table></figure>
+<p>将编写好的文件放入 <code>classpath</code> 下的 <code>META-INF</code> 目录下：<br><img src="/2020/03/02/rpc-achieve/spring-cfg.png"></p>
+<p>在 Spring 配置文件中配置服务类：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- 发布远程服务 --&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"helloService"</span> <span class="attr">class</span>=<span class="string">"com.hsunfkqm.storm.framework.test.HelloServiceImpl"</span>/&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">storm:service</span> <span class="attr">id</span>=<span class="string">"helloServiceRegister"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">interface</span>=<span class="string">"com.hsunfkqm.storm.framework.test.HelloService"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">ref</span>=<span class="string">"helloService"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">groupName</span>=<span class="string">"default"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">weight</span>=<span class="string">"2"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">appKey</span>=<span class="string">"ares"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">workerThreads</span>=<span class="string">"100"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">serverPort</span>=<span class="string">"8081"</span></span></span><br><span class="line"><span class="tag">                     <span class="attr">timeout</span>=<span class="string">"600"</span>/&gt;</span></span><br></pre></td></tr></table></figure>
+<p>编写对应的 Handler 和 Parser：<br><code>StormServiceNamespaceHandler</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.xml.NamespaceHandlerSupport;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span> 服务发布自定义标签</span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StormServiceNamespaceHandler</span> <span class="keyword">extends</span> <span class="title">NamespaceHandlerSupport</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        registerBeanDefinitionParser(<span class="string">"service"</span>, <span class="keyword">new</span> ProviderFactoryBeanDefinitionParser());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>ProviderFactoryBeanDefinitionParser</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Class <span class="title">getBeanClass</span><span class="params">(Element element)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> ProviderFactoryBean.class;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doParse</span><span class="params">(Element element, BeanDefinitionBuilder bean)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            String serviceItf = element.getAttribute(<span class="string">"interface"</span>);</span><br><span class="line">            String serverPort = element.getAttribute(<span class="string">"serverPort"</span>);</span><br><span class="line">            String ref = element.getAttribute(<span class="string">"ref"</span>);</span><br><span class="line">            <span class="comment">// ....</span></span><br><span class="line">            bean.addPropertyValue(<span class="string">"serverPort"</span>, Integer.parseInt(serverPort));</span><br><span class="line">            bean.addPropertyValue(<span class="string">"serviceItf"</span>, Class.forName(serviceItf));</span><br><span class="line">            bean.addPropertyReference(<span class="string">"serviceObject"</span>, ref);</span><br><span class="line">            <span class="comment">//...</span></span><br><span class="line">            <span class="keyword">if</span> (NumberUtils.isNumber(weight)) &#123;</span><br><span class="line">                bean.addPropertyValue(<span class="string">"weight"</span>, Integer.parseInt(weight));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//...</span></span><br><span class="line">       &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="comment">// ...        </span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p><code>ProviderFactoryBean</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span> 服务发布</span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ProviderFactoryBean</span> <span class="keyword">implements</span> <span class="title">FactoryBean</span>, <span class="title">InitializingBean</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//服务接口</span></span><br><span class="line">    <span class="keyword">private</span> Class&lt;?&gt; serviceItf;</span><br><span class="line">    <span class="comment">//服务实现</span></span><br><span class="line">    <span class="keyword">private</span> Object serviceObject;</span><br><span class="line">    <span class="comment">//服务端口</span></span><br><span class="line">    <span class="keyword">private</span> String serverPort;</span><br><span class="line">    <span class="comment">//服务超时时间</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span> timeout;</span><br><span class="line">    <span class="comment">//服务代理对象，暂时没有用到</span></span><br><span class="line">    <span class="keyword">private</span> Object serviceProxyObject;</span><br><span class="line">    <span class="comment">//服务提供者唯一标识</span></span><br><span class="line">    <span class="keyword">private</span> String appKey;</span><br><span class="line">    <span class="comment">//服务分组组名</span></span><br><span class="line">    <span class="keyword">private</span> String groupName = <span class="string">"default"</span>;</span><br><span class="line">    <span class="comment">//服务提供者权重，默认为 1 , 范围为 [1-100]</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> weight = <span class="number">1</span>;</span><br><span class="line">    <span class="comment">//服务端线程数，默认 10 个线程</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> workerThreads = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">getObject</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> serviceProxyObject;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Class&lt;?&gt; getObjectType() &#123;</span><br><span class="line">        <span class="keyword">return</span> serviceItf;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">afterPropertiesSet</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">//启动 Netty 服务端</span></span><br><span class="line">        NettyServer.singleton().start(Integer.parseInt(serverPort));</span><br><span class="line">        <span class="comment">//注册到 zk, 元数据注册中心</span></span><br><span class="line">        List&lt;ProviderService&gt; providerServiceList = buildProviderServiceInfos();</span><br><span class="line">        IRegisterCenter4Provider registerCenter4Provider = RegisterCenter.singleton();</span><br><span class="line">        registerCenter4Provider.registerProvider(providerServiceList);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//================RegisterCenter#registerProvider======================</span></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerProvider</span><span class="params">(<span class="keyword">final</span> List&lt;ProviderService&gt; serviceMetaData)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (CollectionUtils.isEmpty(serviceMetaData)) &#123;</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//连接 zk, 注册服务</span></span><br><span class="line">    <span class="keyword">synchronized</span> (RegisterCenter.class) &#123;</span><br><span class="line">        <span class="keyword">for</span> (ProviderService provider : serviceMetaData) &#123;</span><br><span class="line">            String serviceItfKey = provider.getServiceItf().getName();</span><br><span class="line"></span><br><span class="line">            List&lt;ProviderService&gt; providers = providerServiceMap.get(serviceItfKey);</span><br><span class="line">            <span class="keyword">if</span> (providers == <span class="keyword">null</span>) &#123;</span><br><span class="line">                providers = Lists.newArrayList();</span><br><span class="line">            &#125;</span><br><span class="line">            providers.add(provider);</span><br><span class="line">            providerServiceMap.put(serviceItfKey, providers);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (zkClient == <span class="keyword">null</span>) &#123;</span><br><span class="line">            zkClient = <span class="keyword">new</span> ZkClient(ZK_SERVICE, ZK_SESSION_TIME_OUT, ZK_CONNECTION_TIME_OUT, <span class="keyword">new</span> SerializableSerializer());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//创建 ZK 命名空间/当前部署应用 APP 命名空间/</span></span><br><span class="line">        String APP_KEY = serviceMetaData.get(<span class="number">0</span>).getAppKey();</span><br><span class="line">        String ZK_PATH = ROOT_PATH + <span class="string">"/"</span> + APP_KEY;</span><br><span class="line">        <span class="keyword">boolean</span> exist = zkClient.exists(ZK_PATH);</span><br><span class="line">        <span class="keyword">if</span> (!exist) &#123;</span><br><span class="line">            zkClient.createPersistent(ZK_PATH, <span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (Map.Entry&lt;String, List&lt;ProviderService&gt;&gt; entry : providerServiceMap.entrySet()) &#123;</span><br><span class="line">            <span class="comment">//服务分组</span></span><br><span class="line">            String groupName = entry.getValue().get(<span class="number">0</span>).getGroupName();</span><br><span class="line">            <span class="comment">//创建服务提供者</span></span><br><span class="line">            String serviceNode = entry.getKey();</span><br><span class="line">            String servicePath = ZK_PATH + <span class="string">"/"</span> + groupName + <span class="string">"/"</span> + serviceNode + <span class="string">"/"</span> + PROVIDER_TYPE;</span><br><span class="line">            exist = zkClient.exists(servicePath);</span><br><span class="line">            <span class="keyword">if</span> (!exist) &#123;</span><br><span class="line">                zkClient.createPersistent(servicePath, <span class="keyword">true</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">//创建当前服务器节点</span></span><br><span class="line">            <span class="keyword">int</span> serverPort = entry.getValue().get(<span class="number">0</span>).getServerPort();<span class="comment">//服务端口</span></span><br><span class="line">            <span class="keyword">int</span> weight = entry.getValue().get(<span class="number">0</span>).getWeight();<span class="comment">//服务权重</span></span><br><span class="line">            <span class="keyword">int</span> workerThreads = entry.getValue().get(<span class="number">0</span>).getWorkerThreads();<span class="comment">//服务工作线程</span></span><br><span class="line">            String localIp = IPHelper.localIp();</span><br><span class="line">            String currentServiceIpNode = servicePath + <span class="string">"/"</span> + localIp + <span class="string">"|"</span> + serverPort + <span class="string">"|"</span> + weight + <span class="string">"|"</span> + workerThreads + <span class="string">"|"</span> + groupName;</span><br><span class="line">            exist = zkClient.exists(currentServiceIpNode);</span><br><span class="line">            <span class="keyword">if</span> (!exist) &#123;</span><br><span class="line">                <span class="comment">//注意，这里创建的是临时节点</span></span><br><span class="line">                zkClient.createEphemeral(currentServiceIpNode);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//监听注册服务的变化，同时更新数据到本地缓存</span></span><br><span class="line">            zkClient.subscribeChildChanges(servicePath, <span class="keyword">new</span> IZkChildListener() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleChildChange</span><span class="params">(String parentPath, List&lt;String&gt; currentChilds)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                    <span class="keyword">if</span> (currentChilds == <span class="keyword">null</span>) &#123;</span><br><span class="line">                        currentChilds = Lists.newArrayList();</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">//存活的服务 IP 列表</span></span><br><span class="line">                    List&lt;String&gt; activityServiceIpList = Lists.newArrayList(Lists.transform(currentChilds, <span class="keyword">new</span> Function&lt;String, String&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="function"><span class="keyword">public</span> String <span class="title">apply</span><span class="params">(String input)</span> </span>&#123;</span><br><span class="line">                            <span class="keyword">return</span> StringUtils.split(input, <span class="string">"|"</span>)[<span class="number">0</span>];</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;));</span><br><span class="line">                    refreshActivityService(activityServiceIpList);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>至此服务实现类已被载入 Spring 容器中，且服务接口信息也注册到了注册中心。</p>
+<ul>
+<li>网络通信</li>
+</ul>
+<p>作为生产者对外提供 RPC 服务，必须有一个网络程序来来监听请求和做出响应。在 Java 领域 Netty 是一款高性能的 NIO 通信框架，很多的框架的通信都是采用 Netty 来实现的，本例中也采用它当做通信服务器。</p>
+<p>构建并启动 Netty 服务监听指定端口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> port)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">synchronized</span> (NettyServer.class) &#123;</span><br><span class="line">            <span class="keyword">if</span> (bossGroup != <span class="keyword">null</span> || workerGroup != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            bossGroup = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">            workerGroup = <span class="keyword">new</span> NioEventLoopGroup();</span><br><span class="line">            ServerBootstrap serverBootstrap = <span class="keyword">new</span> ServerBootstrap();</span><br><span class="line">            serverBootstrap</span><br><span class="line">                    .group(bossGroup, workerGroup)</span><br><span class="line">                    .channel(NioServerSocketChannel.class)</span><br><span class="line">                    .option(ChannelOption.SO_BACKLOG, <span class="number">1024</span>)</span><br><span class="line">                    .childOption(ChannelOption.SO_KEEPALIVE, <span class="keyword">true</span>)</span><br><span class="line">                    .childOption(ChannelOption.TCP_NODELAY, <span class="keyword">true</span>)</span><br><span class="line">                    .handler(<span class="keyword">new</span> LoggingHandler(LogLevel.INFO))</span><br><span class="line">                    .childHandler(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                            <span class="comment">//注册解码器 NettyDecoderHandler</span></span><br><span class="line">                            ch.pipeline().addLast(<span class="keyword">new</span> NettyDecoderHandler(StormRequest.class, serializeType));</span><br><span class="line">                            <span class="comment">//注册编码器 NettyEncoderHandler</span></span><br><span class="line">                            ch.pipeline().addLast(<span class="keyword">new</span> NettyEncoderHandler(serializeType));</span><br><span class="line">                            <span class="comment">//注册服务端业务逻辑处理器 NettyServerInvokeHandler</span></span><br><span class="line">                            ch.pipeline().addLast(<span class="keyword">new</span> NettyServerInvokeHandler());</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                channel = serverBootstrap.bind(port).sync().channel();</span><br><span class="line">            &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>上面的代码中向 Netty 服务的 pipeline 中添加了编解码和业务处理器，当接收到请求时，经过编解码后，真正处理业务的是业务处理器，即<code>NettyServerInvokeHandler</code>, 该处理器继承自<code>SimpleChannelInboundHandler</code>, 当数据读取完成将触发一个事件，并调用<code>NettyServerInvokeHandler#channelRead0</code>方法来处理请求。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">channelRead0</span><span class="params">(ChannelHandlerContext ctx, StormRequest request)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (ctx.channel().isWritable()) &#123;</span><br><span class="line">        <span class="comment">//从服务调用对象里获取服务提供者信息</span></span><br><span class="line">        ProviderService metaDataModel = request.getProviderService();</span><br><span class="line">        <span class="keyword">long</span> consumeTimeOut = request.getInvokeTimeout();</span><br><span class="line">        <span class="keyword">final</span> String methodName = request.getInvokedMethodName();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//根据方法名称定位到具体某一个服务提供者</span></span><br><span class="line">        String serviceKey = metaDataModel.getServiceItf().getName();</span><br><span class="line">        <span class="comment">//获取限流工具类</span></span><br><span class="line">        <span class="keyword">int</span> workerThread = metaDataModel.getWorkerThreads();</span><br><span class="line">        Semaphore semaphore = serviceKeySemaphoreMap.get(serviceKey);</span><br><span class="line">        <span class="keyword">if</span> (semaphore == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">synchronized</span> (serviceKeySemaphoreMap) &#123;</span><br><span class="line">                semaphore = serviceKeySemaphoreMap.get(serviceKey);</span><br><span class="line">                <span class="keyword">if</span> (semaphore == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    semaphore = <span class="keyword">new</span> Semaphore(workerThread);</span><br><span class="line">                    serviceKeySemaphoreMap.put(serviceKey, semaphore);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//获取注册中心服务</span></span><br><span class="line">        IRegisterCenter4Provider registerCenter4Provider = RegisterCenter.singleton();</span><br><span class="line">        List&lt;ProviderService&gt; localProviderCaches = registerCenter4Provider.getProviderServiceMap().get(serviceKey);</span><br><span class="line"></span><br><span class="line">        Object result = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">boolean</span> acquire = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ProviderService localProviderCache = Collections2.filter(localProviderCaches, <span class="keyword">new</span> Predicate&lt;ProviderService&gt;() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">apply</span><span class="params">(ProviderService input)</span> </span>&#123;</span><br><span class="line">                    <span class="keyword">return</span> StringUtils.equals(input.getServiceMethod().getName(), methodName);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;).iterator().next();</span><br><span class="line">            Object serviceObject = localProviderCache.getServiceObject();</span><br><span class="line"></span><br><span class="line">            <span class="comment">//利用反射发起服务调用</span></span><br><span class="line">            Method method = localProviderCache.getServiceMethod();</span><br><span class="line">            <span class="comment">//利用 semaphore 实现限流</span></span><br><span class="line">            acquire = semaphore.tryAcquire(consumeTimeOut, TimeUnit.MILLISECONDS);</span><br><span class="line">            <span class="keyword">if</span> (acquire) &#123;</span><br><span class="line">                result = method.invoke(serviceObject, request.getArgs());</span><br><span class="line">                <span class="comment">//System.out.println("---------------"+result);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            System.out.println(JSON.toJSONString(localProviderCaches) + <span class="string">"  "</span> + methodName+<span class="string">" "</span>+e.getMessage());</span><br><span class="line">            result = e;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (acquire) &#123;</span><br><span class="line">                semaphore.release();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//根据服务调用结果组装调用返回对象</span></span><br><span class="line">        StormResponse response = <span class="keyword">new</span> StormResponse();</span><br><span class="line">        response.setInvokeTimeout(consumeTimeOut);</span><br><span class="line">        response.setUniqueKey(request.getUniqueKey());</span><br><span class="line">        response.setResult(result);</span><br><span class="line">        <span class="comment">//将服务调用返回对象回写到消费端</span></span><br><span class="line">        ctx.writeAndFlush(response);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        logger.error(<span class="string">"------------channel closed!---------------"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>此处还有部分细节如自定义的编解码器等，篇幅所限不在此详述，继承 <code>MessageToByteEncoder</code> 和 <code>ByteToMessageDecoder</code> 覆写对应的 <code>encode</code> 和 <code>decode</code> 方法即可自定义编解码器，使用到的序列化工具如 Hessian/Proto 等可参考对应的官方文档。</p>
+<ul>
+<li>请求和响应包装<br>为便于封装请求和响应，定义两个 bean 来表示请求和响应。</li>
+</ul>
+<p>请求：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span></span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StormRequest</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> serialVersionUID = -<span class="number">5196465012408804755L</span>;</span><br><span class="line">    <span class="comment">//UUID, 唯一标识一次返回值</span></span><br><span class="line">    <span class="keyword">private</span> String uniqueKey;</span><br><span class="line">    <span class="comment">//服务提供者信息</span></span><br><span class="line">    <span class="keyword">private</span> ProviderService providerService;</span><br><span class="line">    <span class="comment">//调用的方法名称</span></span><br><span class="line">    <span class="keyword">private</span> String invokedMethodName;</span><br><span class="line">    <span class="comment">//传递参数</span></span><br><span class="line">    <span class="keyword">private</span> Object[] args;</span><br><span class="line">    <span class="comment">//消费端应用名</span></span><br><span class="line">    <span class="keyword">private</span> String appName;</span><br><span class="line">    <span class="comment">//消费请求超时时长</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span> invokeTimeout;</span><br><span class="line">    <span class="comment">// getter/setter</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>响应：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span></span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StormResponse</span> <span class="keyword">implements</span> <span class="title">Serializable</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> serialVersionUID = <span class="number">5785265307118147202L</span>;</span><br><span class="line">    <span class="comment">//UUID, 唯一标识一次返回值</span></span><br><span class="line">    <span class="keyword">private</span> String uniqueKey;</span><br><span class="line">    <span class="comment">//客户端指定的服务超时时间</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span> invokeTimeout;</span><br><span class="line">    <span class="comment">//接口调用返回的结果对象</span></span><br><span class="line">    <span class="keyword">private</span> Object result;</span><br><span class="line">    <span class="comment">//getter/setter</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="客户端（消费者）"><a href="#客户端（消费者）" class="headerlink" title="客户端（消费者）"></a>客户端（消费者）</h3><p>客户端（消费者）在 RPC 调用中主要是生成服务接口的代理对象，并从注册中心获取对应的服务列表发起网络请求。<br>客户端和服务端一样采用 Spring 来管理 bean 解析 xml 配置等不再赘述，重点看下以下几点：</p>
+<ul>
+<li>通过 jdk 动态代理来生成引入服务接口的代理对象</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">getProxy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), <span class="keyword">new</span> Class&lt;?&gt;[]&#123;targetInterface&#125;, <span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>从注册中心获取服务列表并依据某种策略选取其中一个服务节点</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//服务接口名称</span></span><br><span class="line">String serviceKey = targetInterface.getName();</span><br><span class="line"><span class="comment">//获取某个接口的服务提供者列表</span></span><br><span class="line">IRegisterCenter4Invoker registerCenter4Consumer = RegisterCenter.singleton();</span><br><span class="line">List&lt;ProviderService&gt; providerServices = registerCenter4Consumer.getServiceMetaDataMap4Consume().get(serviceKey);</span><br><span class="line"><span class="comment">//根据软负载策略，从服务提供者列表选取本次调用的服务提供者</span></span><br><span class="line">ClusterStrategy clusterStrategyService = ClusterEngine.queryClusterStrategy(clusterStrategy);</span><br><span class="line">ProviderService providerService = clusterStrategyService.select(providerServices);</span><br></pre></td></tr></table></figure>
+<ul>
+<li>通过 Netty 建立连接，发起网络请求</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span> Netty 消费端 bean 代理工厂</span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RevokerProxyBeanFactory</span> <span class="keyword">implements</span> <span class="title">InvocationHandler</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> ExecutorService fixedThreadPool = <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">//服务接口</span></span><br><span class="line">    <span class="keyword">private</span> Class&lt;?&gt; targetInterface;</span><br><span class="line">    <span class="comment">//超时时间</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> consumeTimeout;</span><br><span class="line">    <span class="comment">//调用者线程数</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> threadWorkerNumber = <span class="number">10</span>;</span><br><span class="line">    <span class="comment">//负载均衡策略</span></span><br><span class="line">    <span class="keyword">private</span> String clusterStrategy;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Object <span class="title">invoke</span><span class="params">(Object proxy, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable </span>&#123;</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">        <span class="comment">//复制一份服务提供者信息</span></span><br><span class="line">        ProviderService newProvider = providerService.copy();</span><br><span class="line">        <span class="comment">//设置本次调用服务的方法以及接口</span></span><br><span class="line">        newProvider.setServiceMethod(method);</span><br><span class="line">        newProvider.setServiceItf(targetInterface);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//声明调用 AresRequest 对象，AresRequest 表示发起一次调用所包含的信息</span></span><br><span class="line">        <span class="keyword">final</span> StormRequest request = <span class="keyword">new</span> StormRequest();</span><br><span class="line">        <span class="comment">//设置本次调用的唯一标识</span></span><br><span class="line">        request.setUniqueKey(UUID.randomUUID().toString() + <span class="string">"-"</span> + Thread.currentThread().getId());</span><br><span class="line">        <span class="comment">//设置本次调用的服务提供者信息</span></span><br><span class="line">        request.setProviderService(newProvider);</span><br><span class="line">        <span class="comment">//设置本次调用的方法名称</span></span><br><span class="line">        request.setInvokedMethodName(method.getName());</span><br><span class="line">        <span class="comment">//设置本次调用的方法参数信息</span></span><br><span class="line">        request.setArgs(args);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">//构建用来发起调用的线程池</span></span><br><span class="line">            <span class="keyword">if</span> (fixedThreadPool == <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">synchronized</span> (RevokerProxyBeanFactory.class) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="keyword">null</span> == fixedThreadPool) &#123;</span><br><span class="line">                        fixedThreadPool = Executors.newFixedThreadPool(threadWorkerNumber);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//根据服务提供者的 ip,port, 构建 InetSocketAddress 对象，标识服务提供者地址</span></span><br><span class="line">            String serverIp = request.getProviderService().getServerIp();</span><br><span class="line">            <span class="keyword">int</span> serverPort = request.getProviderService().getServerPort();</span><br><span class="line">            InetSocketAddress inetSocketAddress = <span class="keyword">new</span> InetSocketAddress(serverIp, serverPort);</span><br><span class="line">            <span class="comment">//提交本次调用信息到线程池 fixedThreadPool, 发起调用</span></span><br><span class="line">            Future&lt;StormResponse&gt; responseFuture = fixedThreadPool.submit(RevokerServiceCallable.of(inetSocketAddress, request));</span><br><span class="line">            <span class="comment">//获取调用的返回结果</span></span><br><span class="line">            StormResponse response = responseFuture.get(request.getInvokeTimeout(), TimeUnit.MILLISECONDS);</span><br><span class="line">            <span class="keyword">if</span> (response != <span class="keyword">null</span>) &#123;</span><br><span class="line">                <span class="keyword">return</span> response.getResult();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//  ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Netty 的响应是异步的，为了在方法调用返回前获取到响应结果，需要将异步的结果同步化。</p>
+<ul>
+<li>Netty 异步返回的结果存入阻塞队列</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">channelRead0</span><span class="params">(ChannelHandlerContext channelHandlerContext, StormResponse response)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="comment">//将 Netty 异步返回的结果存入阻塞队列，以便调用端同步获取</span></span><br><span class="line">    RevokerResponseHolder.putResultValue(response);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>请求发出后同步获取结果</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//提交本次调用信息到线程池 fixedThreadPool, 发起调用</span></span><br><span class="line">Future&lt;StormResponse&gt; responseFuture = fixedThreadPool.submit(RevokerServiceCallable.of(inetSocketAddress, request));</span><br><span class="line"><span class="comment">//获取调用的返回结果</span></span><br><span class="line">StormResponse response = responseFuture.get(request.getInvokeTimeout(), TimeUnit.MILLISECONDS);</span><br><span class="line"><span class="keyword">if</span> (response != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> response.getResult();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//===================================================</span></span><br><span class="line"><span class="comment">//从返回结果容器中获取返回结果，同时设置等待超时时间为 invokeTimeout</span></span><br><span class="line"><span class="keyword">long</span> invokeTimeout = request.getInvokeTimeout();</span><br><span class="line">StormResponse response = RevokerResponseHolder.getValue(request.getUniqueKey(), invokeTimeout);</span><br></pre></td></tr></table></figure>
+<h2 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h2><p><code>Server</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> 孙浩</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@Descrption</span></span></span><br><span class="line"><span class="comment"> ***/</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainServer</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        <span class="comment">//发布服务</span></span><br><span class="line">        <span class="keyword">final</span> ClassPathXmlApplicationContext context = <span class="keyword">new</span> ClassPathXmlApplicationContext(<span class="string">"storm-server.xml"</span>);</span><br><span class="line">        System.out.println(<span class="string">" 服务发布完成"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Client</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Client</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Logger logger = LoggerFactory.getLogger(Client.class);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">final</span> ClassPathXmlApplicationContext context = <span class="keyword">new</span> ClassPathXmlApplicationContext(<span class="string">"storm-client.xml"</span>);</span><br><span class="line">        <span class="keyword">final</span> HelloService helloService = (HelloService) context.getBean(<span class="string">"helloService"</span>);</span><br><span class="line">        String result = helloService.sayHello(<span class="string">"World"</span>);</span><br><span class="line">        System.out.println(result);</span><br><span class="line">        <span class="keyword">for</span> (;;) &#123;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h3><p>生产者：<br><img src="/2020/03/02/rpc-achieve/provider.png"></p>
+<p>消费者：<br><img src="/2020/03/02/rpc-achieve/consumer.png"></p>
+<p>注册中心<br><img src="/2020/03/02/rpc-achieve/register-center.png"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文简单介绍了 RPC 的整个流程，并实现了一个简单的 RPC 调用。希望阅读完本文之后，能加深你对 RPC 的一些认识。</p>
+<ul>
+<li><p>生产者端流程：</p>
+<ul>
+<li>加载服务接口，并缓存</li>
+<li>服务注册，将服务接口以及服务主机信息写入注册中心（本例使用的是 zookeeper)</li>
+<li>启动网络服务器并监听</li>
+<li>反射，本地调用</li>
+</ul>
+</li>
+<li><p>消费者端流程：</p>
+<ul>
+<li>代理服务接口生成代理对象</li>
+<li>服务发现（连接 zookeeper，拿到服务地址列表，通过客户端负载策略获取合适的服务地址）</li>
+<li>远程方法调用（本例通过 Netty，发送消息，并获取响应结果）</li>
+</ul>
+</li>
+</ul>
+<p>限于篇幅，本文代码并不完整，如有需要，访问：<a href="https://github.com/fankongqiumu/storm.git" target="_blank" rel="noopener">https://github.com/fankongqiumu/storm.git</a>，获取完整代码。</p>
+<p>如有错误之处，还望大家指正。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>孙浩，小米信息技术部售后组</p>
+<p><strong>关于 storm</strong></p>
+<p>此<code>storm</code>非彼<code>storm</code>, 文中所示代码是一个基础的 RPC 框架的 demo，还在完善中，欢迎有兴趣的童鞋参与进来。</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Java" >
+    <span class="tag-code">Java</span>
+  </a>
+
+  <a href="/tags#RPC" >
+    <span class="tag-code">RPC</span>
+  </a>
+
+  <a href="/tags#Spring" >
+    <span class="tag-code">Spring</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/01/20/go-trample-panic-recover/">
+        <span class="nav-arrow">← </span>
+        
+          Go 语言踩坑记——panic 与 recover
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/03/16/java-beans-introspection/">
+        
+          小议 Java 内省机制
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#浅析-RPC-与基本实现"><span class="toc-nav-text">浅析 RPC 与基本实现</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#引言"><span class="toc-nav-text">引言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#一次基本的-RPC-调用会涉及到什么？"><span class="toc-nav-text">一次基本的 RPC 调用会涉及到什么？</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#基本实现"><span class="toc-nav-text">基本实现</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#服务端（生产者）"><span class="toc-nav-text">服务端（生产者）</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#客户端（消费者）"><span class="toc-nav-text">客户端（消费者）</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#测试"><span class="toc-nav-text">测试</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#结果"><span class="toc-nav-text">结果</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/03/02/rpc-achieve/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "浅析 RPC 与基本实现",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      设计模式基础之——模板模式业务实战 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>设计模式基础之——模板模式业务实战</h2>
+  <p class="post-date">2020-03-27</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p><strong>[作者简介]</strong> 施展，小米信息技术部海外商城组</p>
+<p>本文章主要采用如下结构：</p>
+<ul>
+<li>什么是「XX 设计模式」？</li>
+<li>什么真实业务场景可以使用「XX 设计模式」？</li>
+<li>怎么用「XX 设计模式」？</li>
+</ul>
+<p>本文主要介绍「模板模式」如何在真实业务场景中使用。</p>
+<h2 id="什么是「模板模式」？"><a href="#什么是「模板模式」？" class="headerlink" title="什么是「模板模式」？"></a>什么是「模板模式」？</h2><p>抽象类里定义好<strong>算法的执行步骤</strong>和<strong>具体算法</strong>，以及可能发生变化的算法定义为<strong>抽象方法</strong>。不同的子类继承该抽象类，并实现父类的抽象方法。</p>
+<p>模板模式的优势：</p>
+<ul>
+<li>不变的算法被继承复用：不变的部分高度封装、复用。</li>
+<li>变化的算法子类继承并具体实现：变化的部分子类只需要具体实现抽象的部分即可，方便扩展，且可无限扩展。</li>
+</ul>
+<h2 id="什么真实业务场景可以用「模板模式」？"><a href="#什么真实业务场景可以用「模板模式」？" class="headerlink" title="什么真实业务场景可以用「模板模式」？"></a>什么真实业务场景可以用「模板模式」？</h2><p>满足如下要求的所有场景：</p>
+<blockquote>
+<p>算法执行的步骤是稳定<strong>不变的</strong>，但是具体的某些算法可能存在<strong>变</strong>化的场景。</p>
+</blockquote>
+<p>怎么理解，举个例子：<code>比如说你煮个面，必然需要先烧水，水烧开之后再放面进去</code>，以上的流程我们称之为<code>煮面过程</code>。可知：这个<code>煮面过程</code>的步骤是稳定不变的，但是在不同的环境烧水的方式可能不尽相同，也许有的人用天然气烧水、有的人用电磁炉烧水、有的人用柴火烧水，等等。我们可以得到以下结论：</p>
+<ul>
+<li><code>煮面过程</code>的步骤是稳定不变的</li>
+<li><code>煮面过程</code>的烧水方式是可变的</li>
+</ul>
+<blockquote>
+<p>我们有哪些真实业务场景可以用「模板模式」呢？</p>
+</blockquote>
+<p>比如抽奖系统的抽奖接口，为什么：</p>
+<ul>
+<li>抽奖的步骤是稳定不变的 -&gt; <strong>不变的</strong>算法执行步骤</li>
+<li>不同抽奖类型活动在某些逻辑处理方式可能不同 -&gt; <strong>变的</strong>某些算法</li>
+</ul>
+<h2 id="怎么用「模板模式」？"><a href="#怎么用「模板模式」？" class="headerlink" title="怎么用「模板模式」？"></a>怎么用「模板模式」？</h2><p>关于怎么用，完全可以生搬硬套我总结的使用设计模式的四个步骤：</p>
+<ul>
+<li>业务梳理</li>
+<li>业务流程图</li>
+<li>代码建模</li>
+<li>代码 demo</li>
+</ul>
+<h3 id="业务梳理"><a href="#业务梳理" class="headerlink" title="业务梳理"></a>业务梳理</h3><p>我通过历史上接触过的各种抽奖场景（红包雨、糖果雨、打地鼠、大转盘（九宫格）、考眼力、答题闯关、游戏闯关、支付刮刮乐、积分刮刮乐等等），按照真实业务需求梳理了以下抽奖业务抽奖接口的大致文本流程。</p>
+<table>
+<thead>
+<tr>
+<th>主步骤</th>
+<th>主逻辑</th>
+<th>抽奖类型</th>
+<th>子步骤</th>
+<th>子逻辑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>校验活动编号 (serial_no) 是否存在、并获取活动信息</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>2</td>
+<td>校验活动、场次是否正在进行</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>3</td>
+<td>其他参数校验 (<strong>不同活动类型实现不同</strong>)</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>4</td>
+<td>活动抽奖次数校验（同时扣减）</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>5</td>
+<td>活动是否需要消费积分</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>6</td>
+<td>场次抽奖次数校验（同时扣减）</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>7</td>
+<td>获取场次奖品信息</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>8</td>
+<td>获取 node 奖品信息 (<strong>不同活动类型实现不同</strong>)</td>
+<td><strong>按时间抽奖类型</strong></td>
+<td>1</td>
+<td>do nothing（抽取该场次的奖品即可，无需其他逻辑）</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td><strong>按抽奖次数抽奖类型</strong></td>
+<td>1</td>
+<td>判断是该用户第几次抽奖</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td></td>
+<td>2</td>
+<td>获取对应 node 的奖品信息</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td></td>
+<td>3</td>
+<td>复写原所有奖品信息（抽取该 node 节点的奖品）</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td><strong>按数额范围区间抽奖</strong></td>
+<td>1</td>
+<td>判断属于哪个数额区间</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td></td>
+<td>2</td>
+<td>获取对应 node 的奖品信息</td>
+</tr>
+<tr>
+<td>8</td>
+<td></td>
+<td></td>
+<td>3</td>
+<td>复写原所有奖品信息（抽取该 node 节点的奖品）</td>
+</tr>
+<tr>
+<td>9</td>
+<td>抽奖</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>10</td>
+<td>奖品数量判断</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>11</td>
+<td>组装奖品信息</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注：流程不一定完全准确</p>
+</blockquote>
+<p>结论：</p>
+<ul>
+<li><code>主逻辑</code>是稳定不变的</li>
+<li><code>其他参数校验</code>和<code>获取 node 奖品信息</code>的算法是可变的</li>
+</ul>
+<h3 id="业务流程图"><a href="#业务流程图" class="headerlink" title="业务流程图"></a>业务流程图</h3><p>我们通过梳理的文本业务流程得到了如下的业务流程图：</p>
+<img src="/2020/03/27/oo-use-template/flow.png">
+<h3 id="代码建模"><a href="#代码建模" class="headerlink" title="代码建模"></a>代码建模</h3><p>通过上面的分析我们可以得到：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">一个抽象类</span><br><span class="line">- 具体共有方法`Run`，里面定义了算法的执行步骤</span><br><span class="line">- 具体私有方法，不会发生变化的具体方法</span><br><span class="line">- 抽象方法，会发生变化的方法</span><br><span class="line"></span><br><span class="line">子类一（按时间抽奖类型）</span><br><span class="line">- 继承抽象类父类</span><br><span class="line">- 实现抽象方法</span><br><span class="line"></span><br><span class="line">子类二（按抽奖次数抽奖类型）</span><br><span class="line">- 继承抽象类父类</span><br><span class="line">- 实现抽象方法</span><br><span class="line"></span><br><span class="line">子类三（按数额范围区间抽奖）</span><br><span class="line">- 继承抽象类父类</span><br><span class="line">- 实现抽象方法</span><br></pre></td></tr></table></figure>
+<p>但是 golang 里面没有继承的概念，我们就把对抽象类里抽象方法的依赖转化成对接口<code>interface</code>里抽想方法的依赖，同时也可以利用<code>合成复用</code>的方式“继承”模板：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">抽象行为的接口`BehaviorInterface`（包含如下需要实现的方法）</span><br><span class="line">- 其他参数校验的方法`checkParams`</span><br><span class="line">- 获取 node 奖品信息的方法`getPrizesByNode`</span><br><span class="line"></span><br><span class="line">抽奖结构体类</span><br><span class="line">- 具体共有方法`Run`，里面定义了算法的执行步骤</span><br><span class="line">- 具体私有方法`checkParams` 里面的逻辑实际依赖的接口 BehaviorInterface.checkParams(ctx) 的抽象方法</span><br><span class="line">- 具体私有方法`getPrizesByNode` 里面的逻辑实际依赖的接口 BehaviorInterface.getPrizesByNode(ctx) 的抽象方法</span><br><span class="line">- 其他具体私有方法，不会发生变化的具体方法</span><br><span class="line"></span><br><span class="line">实现`BehaviorInterface`的结构体一（按时间抽奖类型）</span><br><span class="line">- 实现接口方法</span><br><span class="line"></span><br><span class="line">实现`BehaviorInterface`的结构体二（按抽奖次数抽奖类型）</span><br><span class="line">- 实现接口方法</span><br><span class="line"></span><br><span class="line">实现`BehaviorInterface`的结构体三（按数额范围区间抽奖）</span><br><span class="line">- 实现接口方法</span><br></pre></td></tr></table></figure>
+<p>同时得到了我们的 UML 图：</p>
+<img src="/2020/03/27/oo-use-template/uml.jpg">
+<h3 id="代码-demo"><a href="#代码-demo" class="headerlink" title="代码 demo"></a>代码 demo</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"runtime"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">//------------------------------------------------------------</span></span><br><span class="line"><span class="comment">//我的代码没有`else`系列</span></span><br><span class="line"><span class="comment">//模板模式</span></span><br><span class="line"><span class="comment">//@auhtor TIGERB&lt;https://github.com/TIGERB&gt;</span></span><br><span class="line"><span class="comment">//------------------------------------------------------------</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    <span class="comment">// ConstActTypeTime 按时间抽奖类型</span></span><br><span class="line">    ConstActTypeTime <span class="keyword">int32</span> = <span class="number">1</span></span><br><span class="line">    <span class="comment">// ConstActTypeTimes 按抽奖次数抽奖</span></span><br><span class="line">    ConstActTypeTimes <span class="keyword">int32</span> = <span class="number">2</span></span><br><span class="line">    <span class="comment">// ConstActTypeAmount 按数额范围区间抽奖</span></span><br><span class="line">    ConstActTypeAmount <span class="keyword">int32</span> = <span class="number">3</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Context 上下文</span></span><br><span class="line"><span class="keyword">type</span> Context <span class="keyword">struct</span> &#123;</span><br><span class="line">    ActInfo *ActInfo</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ActInfo 上下文</span></span><br><span class="line"><span class="keyword">type</span> ActInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 活动抽奖类型 1: 按时间抽奖 2: 按抽奖次数抽奖 3: 按数额范围区间抽奖</span></span><br><span class="line">    ActivityType <span class="keyword">int32</span></span><br><span class="line">    <span class="comment">// 其他字段略</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// BehaviorInterface 不同抽奖类型的行为差异的抽象接口</span></span><br><span class="line"><span class="keyword">type</span> BehaviorInterface <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line">    checkParams(ctx *Context) error</span><br><span class="line">    <span class="comment">// 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line">    getPrizesByNode(ctx *Context) error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TimeDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按时间抽奖类型 比如红包雨</span></span><br><span class="line"><span class="keyword">type</span> TimeDraw <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimeDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按时间抽奖类型：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimeDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"do nothing（抽取该场次的奖品即可，无需其他逻辑）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TimesDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按抽奖次数抽奖类型 比如答题闯关</span></span><br><span class="line"><span class="keyword">type</span> TimesDraw <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimesDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按抽奖次数抽奖类型：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimesDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"1. 判断是该用户第几次抽奖。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"2. 获取对应 node 的奖品信息。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"3. 复写原所有奖品信息（抽取该 node 节点的奖品）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AmountDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按数额范围区间抽奖 比如订单金额刮奖</span></span><br><span class="line"><span class="keyword">type</span> AmountDraw <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw *AmountDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按数额范围区间抽奖：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw *AmountDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"1. 判断属于哪个数额区间。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"2. 获取对应 node 的奖品信息。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"3. 复写原所有奖品信息（抽取该 node 节点的奖品）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Lottery 抽奖模板</span></span><br><span class="line"><span class="keyword">type</span> Lottery <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 不同抽奖类型的抽象行为</span></span><br><span class="line">    concreteBehavior BehaviorInterface</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run 抽奖算法</span></span><br><span class="line"><span class="comment">// 稳定不变的算法步骤</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">Run</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 具体方法：校验活动编号 (serial_no) 是否存在、并获取活动信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkSerialNo(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：校验活动、场次是否正在进行</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkStatus(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ”抽象方法“：其他参数校验</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkParams(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：活动抽奖次数校验（同时扣减）</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkTimesByAct(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：活动是否需要消费积分</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.consumePointsByAct(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：场次抽奖次数校验（同时扣减）</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkTimesBySession(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：获取场次奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.getPrizesBySession(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ”抽象方法“：获取 node 奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.getPrizesByNode(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：抽奖</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.drawPrizes(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：奖品数量判断</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkPrizesStock(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：组装奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.packagePrizeInfo(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkSerialNo 校验活动编号 (serial_no) 是否存在</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkSerialNo</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"校验活动编号 (serial_no) 是否存在、并获取活动信息。.."</span>)</span><br><span class="line">    <span class="comment">// 获取活动信息伪代码</span></span><br><span class="line">    ctx.ActInfo = &amp;ActInfo&#123;</span><br><span class="line">    <span class="comment">// 假设当前的活动类型为按抽奖次数抽奖</span></span><br><span class="line">    ActivityType: ConstActTypeTimes,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取当前抽奖类型的具体行为</span></span><br><span class="line">    <span class="keyword">switch</span> ctx.ActInfo.ActivityType &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">    <span class="comment">// 按时间抽奖</span></span><br><span class="line">    lottery.concreteBehavior = &amp;TimeDraw&#123;&#125;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">2</span>:</span><br><span class="line">    <span class="comment">// 按抽奖次数抽奖</span></span><br><span class="line">    lottery.concreteBehavior = &amp;TimesDraw&#123;&#125;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">3</span>:</span><br><span class="line">    <span class="comment">// 按数额范围区间抽奖</span></span><br><span class="line">    lottery.concreteBehavior = &amp;AmountDraw&#123;&#125;</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">    <span class="keyword">return</span> fmt.Errorf(<span class="string">"不存在的活动类型"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkStatus 校验活动、场次是否正在进行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkStatus</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"校验活动、场次是否正在进行。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="comment">// 不同场景变化的算法 转化为依赖抽象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 实际依赖的接口的抽象方法</span></span><br><span class="line">    <span class="keyword">return</span> lottery.concreteBehavior.checkParams(ctx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkTimesByAct 活动抽奖次数校验</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkTimesByAct</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动抽奖次数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// consumePointsByAct 活动是否需要消费积分</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">consumePointsByAct</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动是否需要消费积分。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkTimesBySession 活动抽奖次数校验</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkTimesBySession</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动抽奖次数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesBySession 获取场次奖品信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">getPrizesBySession</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"获取场次奖品信息。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="comment">// 不同场景变化的算法 转化为依赖抽象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 实际依赖的接口的抽象方法</span></span><br><span class="line">    <span class="keyword">return</span> lottery.concreteBehavior.getPrizesByNode(ctx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// drawPrizes 抽奖</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">drawPrizes</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"抽奖。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkPrizesStock 奖品数量判断</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkPrizesStock</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"奖品数量判断。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// packagePrizeInfo 组装奖品信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">packagePrizeInfo</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"组装奖品信息。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    (&amp;Lottery&#123;&#125;).Run(&amp;Context&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取正在运行的函数名</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">runFuncName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    pc := <span class="built_in">make</span>([]<span class="keyword">uintptr</span>, <span class="number">1</span>)</span><br><span class="line">    runtime.Callers(<span class="number">2</span>, pc)</span><br><span class="line">    f := runtime.FuncForPC(pc[<span class="number">0</span>])</span><br><span class="line">    <span class="keyword">return</span> f.Name()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以下是代码执行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[Running] go run &quot;.../easy-tips/go/src/patterns/template/template.go&quot;</span><br><span class="line">main.(*Lottery).checkSerialNo 校验活动编号 (serial_no) 是否存在、并获取活动信息。..</span><br><span class="line">main.(*Lottery).checkStatus 校验活动、场次是否正在进行。..</span><br><span class="line">main.TimesDraw.checkParams 按抽奖次数抽奖类型：特殊参数校验。..</span><br><span class="line">main.(*Lottery).checkTimesByAct 活动抽奖次数校验。..</span><br><span class="line">main.(*Lottery).consumePointsByAct 活动是否需要消费积分。..</span><br><span class="line">main.(*Lottery).checkTimesBySession 活动抽奖次数校验。..</span><br><span class="line">main.(*Lottery).getPrizesBySession 获取场次奖品信息。..</span><br><span class="line">main.TimesDraw.getPrizesByNode 1. 判断是该用户第几次抽奖。..</span><br><span class="line">main.TimesDraw.getPrizesByNode 2. 获取对应 node 的奖品信息。..</span><br><span class="line">main.TimesDraw.getPrizesByNode 3. 复写原所有奖品信息（抽取该 node 节点的奖品）...</span><br><span class="line">main.(*Lottery).drawPrizes 抽奖。..</span><br><span class="line">main.(*Lottery).checkPrizesStock 奖品数量判断。..</span><br><span class="line">main.(*Lottery).packagePrizeInfo 组装奖品信息。..</span><br></pre></td></tr></table></figure>
+<p>demo 代码地址：<a href="https://github.com/TIGERB/easy-tips/blob/master/go/src/patterns/template/template.go" target="_blank" rel="noopener">https://github.com/TIGERB/easy-tips/blob/master/go/src/patterns/template/template.go</a></p>
+<h3 id="代码-demo2（利用-golang-的合成复用特性实现）"><a href="#代码-demo2（利用-golang-的合成复用特性实现）" class="headerlink" title="代码 demo2（利用 golang 的合成复用特性实现）"></a>代码 demo2（利用 golang 的<code>合成复用</code>特性实现）</h3><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">    <span class="string">"runtime"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">//------------------------------------------------------------</span></span><br><span class="line"><span class="comment">//我的代码没有`else`系列</span></span><br><span class="line"><span class="comment">//模板模式</span></span><br><span class="line"><span class="comment">//@auhtor TIGERB&lt;https://github.com/TIGERB&gt;</span></span><br><span class="line"><span class="comment">//------------------------------------------------------------</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">    <span class="comment">// ConstActTypeTime 按时间抽奖类型</span></span><br><span class="line">    ConstActTypeTime <span class="keyword">int32</span> = <span class="number">1</span></span><br><span class="line">    <span class="comment">// ConstActTypeTimes 按抽奖次数抽奖</span></span><br><span class="line">    ConstActTypeTimes <span class="keyword">int32</span> = <span class="number">2</span></span><br><span class="line">    <span class="comment">// ConstActTypeAmount 按数额范围区间抽奖</span></span><br><span class="line">    ConstActTypeAmount <span class="keyword">int32</span> = <span class="number">3</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Context 上下文</span></span><br><span class="line"><span class="keyword">type</span> Context <span class="keyword">struct</span> &#123;</span><br><span class="line">    ActInfo *ActInfo</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ActInfo 上下文</span></span><br><span class="line"><span class="keyword">type</span> ActInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 活动抽奖类型 1: 按时间抽奖 2: 按抽奖次数抽奖 3: 按数额范围区间抽奖</span></span><br><span class="line">    ActivityType <span class="keyword">int32</span></span><br><span class="line">    <span class="comment">// 其他字段略</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// BehaviorInterface 不同抽奖类型的行为差异的抽象接口</span></span><br><span class="line"><span class="keyword">type</span> BehaviorInterface <span class="keyword">interface</span> &#123;</span><br><span class="line">    <span class="comment">// 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line">    checkParams(ctx *Context) error</span><br><span class="line">    <span class="comment">// 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line">    getPrizesByNode(ctx *Context) error</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TimeDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按时间抽奖类型 比如红包雨</span></span><br><span class="line"><span class="keyword">type</span> TimeDraw <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 合成复用模板</span></span><br><span class="line">    Lottery</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimeDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按时间抽奖类型：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimeDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"do nothing（抽取该场次的奖品即可，无需其他逻辑）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// TimesDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按抽奖次数抽奖类型 比如答题闯关</span></span><br><span class="line"><span class="keyword">type</span> TimesDraw <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 合成复用模板</span></span><br><span class="line">    Lottery</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimesDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按抽奖次数抽奖类型：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw TimesDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"1. 判断是该用户第几次抽奖。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"2. 获取对应 node 的奖品信息。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"3. 复写原所有奖品信息（抽取该 node 节点的奖品）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AmountDraw 具体抽奖行为</span></span><br><span class="line"><span class="comment">// 按数额范围区间抽奖 比如订单金额刮奖</span></span><br><span class="line"><span class="keyword">type</span> AmountDraw <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 合成复用模板</span></span><br><span class="line">    Lottery</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw *AmountDraw)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"按数额范围区间抽奖：特殊参数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(draw *AmountDraw)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"1. 判断属于哪个数额区间。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"2. 获取对应 node 的奖品信息。.."</span>)</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"3. 复写原所有奖品信息（抽取该 node 节点的奖品）..."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Lottery 抽奖模板</span></span><br><span class="line"><span class="keyword">type</span> Lottery <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// 不同抽奖类型的抽象行为</span></span><br><span class="line">    ConcreteBehavior BehaviorInterface</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Run 抽奖算法</span></span><br><span class="line"><span class="comment">// 稳定不变的算法步骤</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">Run</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 具体方法：校验活动编号 (serial_no) 是否存在、并获取活动信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkSerialNo(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：校验活动、场次是否正在进行</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkStatus(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ”抽象方法“：其他参数校验</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkParams(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：活动抽奖次数校验（同时扣减）</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkTimesByAct(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：活动是否需要消费积分</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.consumePointsByAct(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：场次抽奖次数校验（同时扣减）</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkTimesBySession(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：获取场次奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.getPrizesBySession(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ”抽象方法“：获取 node 奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.getPrizesByNode(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：抽奖</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.drawPrizes(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：奖品数量判断</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.checkPrizesStock(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 具体方法：组装奖品信息</span></span><br><span class="line">    <span class="keyword">if</span> err = lottery.packagePrizeInfo(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkSerialNo 校验活动编号 (serial_no) 是否存在</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkSerialNo</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"校验活动编号 (serial_no) 是否存在、并获取活动信息。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkStatus 校验活动、场次是否正在进行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkStatus</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"校验活动、场次是否正在进行。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkParams 其他参数校验（不同活动类型实现不同）</span></span><br><span class="line"><span class="comment">// 不同场景变化的算法 转化为依赖抽象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkParams</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 实际依赖的接口的抽象方法</span></span><br><span class="line">    <span class="keyword">return</span> lottery.ConcreteBehavior.checkParams(ctx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkTimesByAct 活动抽奖次数校验</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkTimesByAct</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动抽奖次数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// consumePointsByAct 活动是否需要消费积分</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">consumePointsByAct</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动是否需要消费积分。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkTimesBySession 活动抽奖次数校验</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkTimesBySession</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"活动抽奖次数校验。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesBySession 获取场次奖品信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">getPrizesBySession</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"获取场次奖品信息。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// getPrizesByNode 获取 node 奖品信息（不同活动类型实现不同）</span></span><br><span class="line"><span class="comment">// 不同场景变化的算法 转化为依赖抽象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">getPrizesByNode</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    <span class="comment">// 实际依赖的接口的抽象方法</span></span><br><span class="line">    <span class="keyword">return</span> lottery.ConcreteBehavior.getPrizesByNode(ctx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// drawPrizes 抽奖</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">drawPrizes</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"抽奖。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// checkPrizesStock 奖品数量判断</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">checkPrizesStock</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"奖品数量判断。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// packagePrizeInfo 组装奖品信息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(lottery *Lottery)</span> <span class="title">packagePrizeInfo</span><span class="params">(ctx *Context)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    fmt.Println(runFuncName(), <span class="string">"组装奖品信息。.."</span>)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    ctx := &amp;Context&#123;</span><br><span class="line">    ActInfo: &amp;ActInfo&#123;</span><br><span class="line">    ActivityType: ConstActTypeAmount,</span><br><span class="line">    &#125;,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> ctx.ActInfo.ActivityType &#123;</span><br><span class="line">    <span class="keyword">case</span> ConstActTypeTime: <span class="comment">// 按时间抽奖类型</span></span><br><span class="line">    instance := &amp;TimeDraw&#123;&#125;</span><br><span class="line">    instance.ConcreteBehavior = instance</span><br><span class="line">    instance.Run(ctx)</span><br><span class="line">    <span class="keyword">case</span> ConstActTypeTimes: <span class="comment">// 按抽奖次数抽奖</span></span><br><span class="line">    instance := &amp;TimesDraw&#123;&#125;</span><br><span class="line">    instance.ConcreteBehavior = instance</span><br><span class="line">    instance.Run(ctx)</span><br><span class="line">    <span class="keyword">case</span> ConstActTypeAmount: <span class="comment">// 按数额范围区间抽奖</span></span><br><span class="line">    instance := &amp;AmountDraw&#123;&#125;</span><br><span class="line">    instance.ConcreteBehavior = instance</span><br><span class="line">    instance.Run(ctx)</span><br><span class="line">    <span class="keyword">default</span>:</span><br><span class="line">    <span class="comment">// 报错</span></span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取正在运行的函数名</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">runFuncName</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">    pc := <span class="built_in">make</span>([]<span class="keyword">uintptr</span>, <span class="number">1</span>)</span><br><span class="line">    runtime.Callers(<span class="number">2</span>, pc)</span><br><span class="line">    f := runtime.FuncForPC(pc[<span class="number">0</span>])</span><br><span class="line">    <span class="keyword">return</span> f.Name()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以下是代码执行结果：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[Running] go run &quot;.../easy-tips/go/src/patterns/template/templateOther.go&quot;</span><br><span class="line">main.(*Lottery).checkSerialNo 校验活动编号 (serial_no) 是否存在、并获取活动信息。..</span><br><span class="line">main.(*Lottery).checkStatus 校验活动、场次是否正在进行。..</span><br><span class="line">main.(*AmountDraw).checkParams 按数额范围区间抽奖：特殊参数校验。..</span><br><span class="line">main.(*Lottery).checkTimesByAct 活动抽奖次数校验。..</span><br><span class="line">main.(*Lottery).consumePointsByAct 活动是否需要消费积分。..</span><br><span class="line">main.(*Lottery).checkTimesBySession 活动抽奖次数校验。..</span><br><span class="line">main.(*Lottery).getPrizesBySession 获取场次奖品信息。..</span><br><span class="line">main.(*AmountDraw).getPrizesByNode 1. 判断属于哪个数额区间。..</span><br><span class="line">main.(*AmountDraw).getPrizesByNode 2. 获取对应 node 的奖品信息。..</span><br><span class="line">main.(*AmountDraw).getPrizesByNode 3. 复写原所有奖品信息（抽取该 node 节点的奖品）...</span><br><span class="line">main.(*Lottery).drawPrizes 抽奖。..</span><br><span class="line">main.(*Lottery).checkPrizesStock 奖品数量判断。..</span><br><span class="line">main.(*Lottery).packagePrizeInfo 组装奖品信息。..</span><br></pre></td></tr></table></figure>
+<p>demo2 代码地址：<a href="https://github.com/TIGERB/easy-tips/blob/master/go/src/patterns/template/templateOther.go" target="_blank" rel="noopener">https://github.com/TIGERB/easy-tips/blob/master/go/src/patterns/template/templateOther.go</a></p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>最后总结下，「模板模式」抽象过程的核心是把握<strong>不变</strong>与<strong>变</strong>：</p>
+<ul>
+<li>不变：<code>Run</code>方法里的抽奖步骤 -&gt; <code>被继承复用</code></li>
+<li>变：不同场景下 -&gt; <code>被具体实现</code><ul>
+<li><code>checkParams</code>参数校验逻辑</li>
+<li><code>getPrizesByNode</code>获取该节点奖品的逻辑</li>
+</ul>
+</li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>施展，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#设计模式" >
+    <span class="tag-code">设计模式</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/03/24/synchronized/">
+        <span class="nav-arrow">← </span>
+        
+          synchronized 实现原理
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/04/14/fe-microfrontends-practice/">
+        
+          微前端在小米 CRM 系统的实践
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#什么是「模板模式」？"><span class="toc-nav-text">什么是「模板模式」？</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#什么真实业务场景可以用「模板模式」？"><span class="toc-nav-text">什么真实业务场景可以用「模板模式」？</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#怎么用「模板模式」？"><span class="toc-nav-text">怎么用「模板模式」？</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#业务梳理"><span class="toc-nav-text">业务梳理</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#业务流程图"><span class="toc-nav-text">业务流程图</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#代码建模"><span class="toc-nav-text">代码建模</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#代码-demo"><span class="toc-nav-text">代码 demo</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#代码-demo2（利用-golang-的合成复用特性实现）"><span class="toc-nav-text">代码 demo2（利用 golang 的合成复用特性实现）</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#结语"><span class="toc-nav-text">结语</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/03/27/oo-use-template/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "设计模式基础之——模板模式业务实战",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

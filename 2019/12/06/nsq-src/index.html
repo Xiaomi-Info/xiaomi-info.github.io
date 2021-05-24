@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      走进 NSQ 源码细节 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>走进 NSQ 源码细节</h2>
+  <p class="post-date">2019-12-06</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h2 id="1-前言：为什么要使用-MQ-消息队列"><a href="#1-前言：为什么要使用-MQ-消息队列" class="headerlink" title="1. 前言：为什么要使用 MQ 消息队列"></a>1. 前言：为什么要使用 MQ 消息队列</h2><p>随着互联网技术在各行各业的应用高速普及与发展，各层应用之间调用关系越来越复杂，架构、开发、运维成本越来越高，高内聚、低耦合、可扩展、高可用已成为了行业需求。</p>
+<p>一提到消息队列 <code>MQ(Message Queue)</code>，我们会想到很多应用场景，比如消息通知、用户积分增减、抽奖中奖等，可以看出来 <code>MQ</code> 的作用有：<br>流程异步化、代码解耦合、流量削峰、高可用、高吞吐量、广播分发，达到数据的最终一致性，满足具体的业务场景需求。</p>
+<p>本文将从 <code>MQ</code> 比较、<code>NSQ</code> 介绍、源代码逻辑、亮点小结等方面进行解析，以期对 <code>NSQ</code> 有较为深入的理解。</p>
+<h2 id="2-主流-MQ-比较"><a href="#2-主流-MQ-比较" class="headerlink" title="2. 主流 MQ 比较"></a>2. 主流 MQ 比较</h2><p>目前主流的 <code>MQ</code> 有 <code>Kafka</code>, <code>RabbitMQ</code>, <code>NSQ</code>, <code>RocketMQ</code>, <code>ActiveMQ</code>，它们的对比如下：</p>
+<img src="/2019/12/06/nsq-src/mq_compare.png">
+<h2 id="3-NSQ-初识"><a href="#3-NSQ-初识" class="headerlink" title="3. NSQ 初识"></a>3. NSQ 初识</h2><p><code>NSQ</code> 最初是由 <code>bitly</code> 公司开源出来的一款简单易用的分布式消息中间件，它可用于大规模系统中的实时消息服务，并且每天能够处理数亿级别的消息。</p>
+<img src="/2019/12/06/nsq-src/logo.png">
+<h3 id="3-1-NSQ-特性"><a href="#3-1-NSQ-特性" class="headerlink" title="3.1 NSQ 特性"></a>3.1 NSQ 特性</h3><p><strong>分布式：</strong> 它提供了分布式的、去中心化且没有单点故障的拓扑结构，稳定的消息传输发布保障，能够具有高容错和高可用特性。</p>
+<p><strong>易于扩展：</strong> 它支持水平扩展，没有中心化的消息代理（ <code>Broker</code> ），内置的发现服务让集群中增加节点非常容易。</p>
+<p><strong>运维方便：</strong> 它非常容易配置和部署，灵活性高。</p>
+<p><strong>高度集成：</strong> 现在已经有官方的 <code>Golang</code>、<code>Python</code> 和 <code>JavaScript</code> 客户端，社区也有了其他各个语言的客户端库方便接入，自定义客户端也非常容易。</p>
+<h3 id="3-2-NSQ-组件"><a href="#3-2-NSQ-组件" class="headerlink" title="3.2 NSQ 组件"></a>3.2 NSQ 组件</h3><img src="/2019/12/06/nsq-src/nsq.gif">
+<p><code>Topic</code>：一个 <code>topic</code> 就是程序发布消息的一个逻辑键，当程序第一次发布消息时就会创建 <code>topic</code>。</p>
+<p><code>Channels</code>： <code>channel</code> 与消费者相关，是消费者之间的负载均衡， <code>channel</code> 在某种意义上来说是一个“队列”。每当一个发布者发送一条消息到一个 <code>topic</code>，消息会被复制到所有消费者连接的 channel 上，消费者通过这个特殊的 channel 读取消息，实际上，在消费者第一次订阅时就会创建 <code>channel</code>。 <code>Channel</code> 会将消息进行排列，如果没有消费者读取消息，消息首先会在内存中排队，当量太大时就会被保存到磁盘中。</p>
+<p><code>Messages</code>：消息构成了我们数据流的中坚力量，消费者可以选择结束消息，表明它们正在被正常处理，或者重新将他们排队待到后面再进行处理。每个消息包含传递尝试的次数，当消息传递超过一定的阀值次数时，我们应该放弃这些消息，或者作为额外消息进行处理。</p>
+<p><code>nsqd</code>： <code>nsqd</code> 是一个守护进程，负责接收（生产者 <code>producer</code> ）、排队（最小堆 <code>min heap</code> 实现）、投递（消费者 <code>consumer</code> ）消息给客户端。它可以独立运行，不过通常它是由 <code>nsqlookupd</code> 实例所在集群配置的（它在这能声明 <code>topics</code> 和 <code>channels</code>，以便大家能找到）。</p>
+<p><code>nsqlookupd</code>： <code>nsqlookupd</code> 是守护进程负责管理拓扑信息。客户端通过查询 <code>nsqlookupd</code> 来发现指定话题（ <code>topic</code> ）的生产者，并且 <code>nsqd</code> 节点广播话题（<code>topic</code>）和通道（ <code>channel</code> ）信息。有两个接口： <code>TCP</code> 接口， <code>nsqd</code> 用它来广播。 <code>HTTP</code> 接口，客户端用它来发现和管理。</p>
+<img src="/2019/12/06/nsq-src/topology.png">
+<p><code>nsqadmin</code>： <code>nsqadmin</code> 是一套 <code>WEB UI</code>，用来汇集集群的实时统计，并执行不同的管理任务。 常用工具类：</p>
+<p><code>nsq_to _file</code>：消费指定的话题（<code>topic</code>）/通道（<code>channel</code>），并写到文件中，有选择的滚动和/或压缩文件。</p>
+<p><code>nsq_to _http</code>：消费指定的话题（<code>topic</code>）/通道（<code>channel</code>）和执行 <code>HTTP requests (GET/POST)</code> 到指定的端点。</p>
+<p><code>nsq_to _nsq</code>：消费者指定的话题/通道和重发布消息到目的地 <code>nsqd</code> 通过 <code>TCP</code>。</p>
+<h2 id="4-nsqd-源码解析"><a href="#4-nsqd-源码解析" class="headerlink" title="4. nsqd 源码解析"></a>4. nsqd 源码解析</h2><h3 id="4-1-nsqd-执行入口"><a href="#4-1-nsqd-执行入口" class="headerlink" title="4.1 nsqd 执行入口"></a>4.1 nsqd 执行入口</h3><p>在 <code>nsq/apps/nsqd/main.go</code> 可以找到执行入口文件，如下：</p>
+<img src="/2019/12/06/nsq-src/nsqd_main.png">
+<h3 id="4-2-nsqd-执行主逻辑源码"><a href="#4-2-nsqd-执行主逻辑源码" class="headerlink" title="4.2 nsqd 执行主逻辑源码"></a>4.2 nsqd 执行主逻辑源码</h3><p>a. 通过第三方 <code>svc</code> 包进行优雅的后台进程管理，<code>svc.Run() -&gt; svc.Init() -&gt; svc.Start()</code>，启动 <code>nsqd</code> 实例；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  prg := &amp;program&#123;&#125;</span><br><span class="line">  <span class="keyword">if</span> err := svc.Run(prg, syscall.SIGINT, syscall.SIGTERM); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logFatal(<span class="string">"%s"</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *program)</span> <span class="title">Init</span><span class="params">(env svc.Environment)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> env.IsWindowsService() &#123;</span><br><span class="line">    dir := filepath.Dir(os.Args[<span class="number">0</span>])</span><br><span class="line">    <span class="keyword">return</span> os.Chdir(dir)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *program)</span> <span class="title">Start</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  opts := nsqd.NewOptions()</span><br><span class="line"></span><br><span class="line">  flagSet := nsqdFlagSet(opts)</span><br><span class="line">  flagSet.Parse(os.Args[<span class="number">1</span>:])</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>b. 初始化配置项（ <code>opts, cfg</code> ），加载历史数据（ <code>nsqd.LoadMetadata</code> ）、持久化最新数据（ <code>nsqd.PersistMetadata</code> ），然后开启协程，进入 <code>nsqd.Main()</code> 主函数；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">options.Resolve(opts, flagSet, cfg)</span><br><span class="line">  nsqd, err := nsqd.New(opts)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logFatal(<span class="string">"failed to instantiate nsqd - %s"</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line">  p.nsqd = nsqd</span><br><span class="line"></span><br><span class="line">  err = p.nsqd.LoadMetadata()</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logFatal(<span class="string">"failed to load metadata - %s"</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line">  err = p.nsqd.PersistMetadata()</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    logFatal(<span class="string">"failed to persist metadata - %s"</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    err := p.nsqd.Main()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      p.Stop()</span><br><span class="line">      os.Exit(<span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;()</span><br></pre></td></tr></table></figure>
+<p>c. 初始化 <code>tcpServer, httpServer, httpsServer</code>，然后循环监控队列信息（ <code>n.queueScanLoop</code> ）、节点信息管理（ <code>n.lookupLoop</code> ）、统计信息（ <code>n.statsdLoop</code> ）输出；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">tcpServer := &amp;tcpServer&#123;ctx: ctx&#125;</span><br><span class="line">  n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    exitFunc(protocol.TCPServer(n.tcpListener, tcpServer, n.logf))</span><br><span class="line">  &#125;)</span><br><span class="line">  httpServer := newHTTPServer(ctx, <span class="literal">false</span>, n.getOpts().TLSRequired == TLSRequired)</span><br><span class="line">  n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    exitFunc(http_api.Serve(n.httpListener, httpServer, <span class="string">"HTTP"</span>, n.logf))</span><br><span class="line">  &#125;)</span><br><span class="line">  <span class="keyword">if</span> n.tlsConfig != <span class="literal">nil</span> &amp;&amp; n.getOpts().HTTPSAddress != <span class="string">""</span> &#123;</span><br><span class="line">    httpsServer := newHTTPServer(ctx, <span class="literal">true</span>, <span class="literal">true</span>)</span><br><span class="line">    n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      exitFunc(http_api.Serve(n.httpsListener, httpsServer, <span class="string">"HTTPS"</span>, n.logf))</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  n.waitGroup.Wrap(n.queueScanLoop)</span><br><span class="line">  n.waitGroup.Wrap(n.lookupLoop)</span><br><span class="line">  <span class="keyword">if</span> n.getOpts().StatsdAddress != <span class="string">""</span> &#123;</span><br><span class="line">    n.waitGroup.Wrap(n.statsdLoop)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>d. 分别处理 <code>tcp/http</code> 请求，开启 <code>handler</code> 协程进行并发处理，其中 <code>newHTTPServer</code> 注册路由采用了 <code>Decorate</code> 装饰器模式（后面会进一步解析）；</p>
+<p><strong><code>http-Decorate</code> 路由分发</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">router := httprouter.New()</span><br><span class="line">  router.HandleMethodNotAllowed = <span class="literal">true</span></span><br><span class="line">  router.PanicHandler = http_api.LogPanicHandler(ctx.nsqd.logf)</span><br><span class="line">  router.NotFound = http_api.LogNotFoundHandler(ctx.nsqd.logf)</span><br><span class="line">  router.MethodNotAllowed = http_api.LogMethodNotAllowedHandler(ctx.nsqd.logf)</span><br><span class="line">  s := &amp;httpServer&#123;</span><br><span class="line">    ctx:         ctx,</span><br><span class="line">    tlsEnabled:  tlsEnabled,</span><br><span class="line">    tlsRequired: tlsRequired,</span><br><span class="line">    router:      router,</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  router.Handle(<span class="string">"GET"</span>, <span class="string">"/ping"</span>, http_api.Decorate(s.pingHandler, log, http_api.PlainText))</span><br><span class="line">  router.Handle(<span class="string">"GET"</span>, <span class="string">"/info"</span>, http_api.Decorate(s.doInfo, log, http_api.V1))</span><br><span class="line"></span><br><span class="line">  <span class="comment">// v1 negotiate</span></span><br><span class="line">  router.Handle(<span class="string">"POST"</span>, <span class="string">"/pub"</span>, http_api.Decorate(s.doPUB, http_api.V1))</span><br><span class="line">  router.Handle(<span class="string">"POST"</span>, <span class="string">"/mpub"</span>, http_api.Decorate(s.doMPUB, http_api.V1))</span><br><span class="line">  router.Handle(<span class="string">"GET"</span>, <span class="string">"/stats"</span>, http_api.Decorate(s.doStats, log, http_api.V1))</span><br><span class="line"></span><br><span class="line">  <span class="comment">// only v1</span></span><br><span class="line">  router.Handle(<span class="string">"POST"</span>, <span class="string">"/topic/create"</span>, http_api.Decorate(s.doCreateTopic, log, http_api.V1))</span><br><span class="line">  router.Handle(<span class="string">"POST"</span>, <span class="string">"/topic/delete"</span>, http_api.Decorate(s.doDeleteTopic, log, http_api.V1))</span><br></pre></td></tr></table></figure>
+<p><strong><code>tcp-handler</code> 处理</strong></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> &#123;</span><br><span class="line">    clientConn, err := listener.Accept()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> nerr, ok := err.(net.Error); ok &amp;&amp; nerr.Temporary() &#123;</span><br><span class="line">        logf(lg.WARN, <span class="string">"temporary Accept() failure - %s"</span>, err)</span><br><span class="line">        runtime.Gosched()</span><br><span class="line">        <span class="keyword">continue</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// theres no direct way to detect this error because it is not exposed</span></span><br><span class="line">      <span class="keyword">if</span> !strings.Contains(err.Error(), <span class="string">"use of closed network connection"</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> fmt.Errorf(<span class="string">"listener.Accept() error - %s"</span>, err)</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">go</span> handler.Handle(clientConn)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>e. <code>TCP</code> 解析 <code>V2</code> 协议，走内部协议封装的 <code>prot.IOLoop(conn)</code> 进行处理；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> prot protocol.Protocol</span><br><span class="line">  <span class="keyword">switch</span> protocolMagic &#123;</span><br><span class="line">  <span class="keyword">case</span> <span class="string">"  V2"</span>:</span><br><span class="line">    prot = &amp;protocolV2&#123;ctx: p.ctx&#125;</span><br><span class="line">  <span class="keyword">default</span>:</span><br><span class="line">    protocol.SendFramedResponse(clientConn, frameTypeError, []<span class="keyword">byte</span>(<span class="string">"E_BAD_PROTOCOL"</span>))</span><br><span class="line">    clientConn.Close()</span><br><span class="line">    p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"client(%s) bad protocol magic '%s'"</span>,</span><br><span class="line">      clientConn.RemoteAddr(), protocolMagic)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  err = prot.IOLoop(clientConn)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"client(%s) - %s"</span>, clientConn.RemoteAddr(), err)</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>f. 通过内部协议进行 <code>p.Exec</code> （执行命令）、 <code>p.Send</code> （发送结果），保证每个 <code>nsqd</code> 节点都能正确的进行消息生成与消费，一旦上述过程有 <code>error</code> 都会被捕获处理，确保分布式投递的可靠性；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">params := bytes.Split(line, separatorBytes)</span><br><span class="line"></span><br><span class="line">    p.ctx.nsqd.logf(LOG_DEBUG, <span class="string">"PROTOCOL(V2): [%s] %s"</span>, client, params)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> response []<span class="keyword">byte</span></span><br><span class="line">    response, err = p.Exec(client, params)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      ctx := <span class="string">""</span></span><br><span class="line">      <span class="keyword">if</span> parentErr := err.(protocol.ChildErr).Parent(); parentErr != <span class="literal">nil</span> &#123;</span><br><span class="line">        ctx = <span class="string">" - "</span> + parentErr.Error()</span><br><span class="line">      &#125;</span><br><span class="line">      p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"[%s] - %s%s"</span>, client, err, ctx)</span><br><span class="line"></span><br><span class="line">      sendErr := p.Send(client, frameTypeError, []<span class="keyword">byte</span>(err.Error()))</span><br><span class="line">      <span class="keyword">if</span> sendErr != <span class="literal">nil</span> &#123;</span><br><span class="line">        p.ctx.nsqd.logf(LOG_ERROR, <span class="string">"[%s] - %s%s"</span>, client, sendErr, ctx)</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="comment">// errors of type FatalClientErr should forceably close the connection</span></span><br><span class="line">      <span class="keyword">if</span> _, ok := err.(*protocol.FatalClientErr); ok &#123;</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">continue</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> response != <span class="literal">nil</span> &#123;</span><br><span class="line">      err = p.Send(client, frameTypeResponse, response)</span><br><span class="line">      <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        err = fmt.Errorf(<span class="string">"failed to send response - %s"</span>, err)</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="4-3-nsqd-流程图小结"><a href="#4-3-nsqd-流程图小结" class="headerlink" title="4.3 nsqd 流程图小结"></a>4.3 nsqd 流程图小结</h2><p>上述流程小结如下：</p>
+<img src="/2019/12/06/nsq-src/nsqd.png">
+<h2 id="5-nsqlookupd-源码解析"><a href="#5-nsqlookupd-源码解析" class="headerlink" title="5. nsqlookupd 源码解析"></a>5. nsqlookupd 源码解析</h2><p><code>nsqlookupd</code> 代码执行逻辑与 <code>nsqd</code> 大体相似，小结流程图如下：</p>
+<img src="/2019/12/06/nsq-src/nsqlookupd.png">
+<h2 id="6-源码亮点"><a href="#6-源码亮点" class="headerlink" title="6. 源码亮点"></a>6. 源码亮点</h2><h3 id="6-1-使用装饰器"><a href="#6-1-使用装饰器" class="headerlink" title="6.1 使用装饰器"></a>6.1 使用装饰器</h3><p>从路由 <code>router.Handle(&quot;GET&quot;, &quot;/ping&quot;, http_api.Decorate(s.pingHandler, log, http_api.PlainText))</code>，可以看出 <code>httpServer</code> 通过 <code>http_api.Decorate</code> 装饰器实现对各 <code>http</code> 路由进行 <code>handler</code> 装饰，如加 <code>log</code> 日志、<code>V1</code> 协议版本号的统一格式输出等；</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Decorate</span><span class="params">(f APIHandler, ds ...Decorator)</span> <span class="title">httprouter</span>.<span class="title">Handle</span></span> &#123;</span><br><span class="line">  decorated := f</span><br><span class="line">  <span class="keyword">for</span> _, decorate := <span class="keyword">range</span> ds &#123;</span><br><span class="line">    decorated = decorate(decorated)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, req *http.Request, ps httprouter.Params)</span></span> &#123;</span><br><span class="line">    decorated(w, req, ps)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="6-2-锁与原子操作-RWMutex-atomic-Value"><a href="#6-2-锁与原子操作-RWMutex-atomic-Value" class="headerlink" title="6.2 锁与原子操作 RWMutex/atomic.Value"></a>6.2 锁与原子操作 RWMutex/atomic.Value</h3><p>从下面的代码中可以看到，当需要获取一个 <code>topic</code> 的时候，先用读锁去读(此时如果有写锁将被阻塞)，若存在则直接返回，若不存在则使用写锁新建一个；另外，使用 <code>atomic.Value</code> 进行结构体某些字段的并发存取值，保证原子性。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">GetTopic</span><span class="params">(topicName <span class="keyword">string</span>)</span> *<span class="title">Topic</span></span> &#123;</span><br><span class="line">  <span class="comment">// most likely, we already have this topic, so try read lock first.</span></span><br><span class="line">  n.RLock()</span><br><span class="line">  t, ok := n.topicMap[topicName]</span><br><span class="line">  n.RUnlock()</span><br><span class="line">  <span class="keyword">if</span> ok &#123;</span><br><span class="line">    <span class="keyword">return</span> t</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  n.Lock()</span><br><span class="line"></span><br><span class="line">  t, ok = n.topicMap[topicName]</span><br><span class="line">  <span class="keyword">if</span> ok &#123;</span><br><span class="line">    n.Unlock()</span><br><span class="line">    <span class="keyword">return</span> t</span><br><span class="line">  &#125;</span><br><span class="line">  deleteCallback := <span class="function"><span class="keyword">func</span><span class="params">(t *Topic)</span></span> &#123;</span><br><span class="line">    n.DeleteExistingTopic(t.name)</span><br><span class="line">  &#125;</span><br><span class="line">  t = NewTopic(topicName, &amp;context&#123;n&#125;, deleteCallback)</span><br><span class="line">  n.topicMap[topicName] = t</span><br><span class="line"></span><br><span class="line">  n.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="6-3-消息多路分发-amp-负载均衡"><a href="#6-3-消息多路分发-amp-负载均衡" class="headerlink" title="6.3 消息多路分发 &amp; 负载均衡"></a>6.3 消息多路分发 &amp; 负载均衡</h3><p><code>Topic</code> 和 <code>Channel</code> 都没有预先配置。<code>Topic</code> 由第一次发布消息到命名的 <code>Topic</code> 或第一次通过订阅一个命名 <code>Topic</code> 来创建。<code>Channel</code> 被第一次订阅到指定的 <code>Channel</code> 创建。<code>Topic</code> 和 <code>Channel</code> 的所有缓冲的数据相互独立，防止缓慢消费者造成对其他 <code>Channel</code> 的积压（同样适用于 <code>Topic</code> 级别）。</p>
+<p><strong>多路分发</strong> - <code>producer</code> 会同时连上 <code>nsq</code> 集群中所有 <code>nsqd</code> 节点，当然这些节点的地址是在初始化时，通过外界传递进去；当发布消息时，<code>producer</code> 会随机选择一个 <code>nsqd</code> 节点发布某个 <code>Topic</code> 的消息；<code>consumer</code> 在订阅 <code>subscribe</code> 某个<code>Topic/Channel</code>时，会首先连上 <code>nsqlookupd</code> 获取最新可用的 <code>nsqd</code> 节点，然后通过 <code>TCP</code> 长连接方式连上所有发布了指定 <code>Topic</code> 的 <code>producer</code> 节点，并在本地用 <code>tornado</code> 轮询每个连接，当某个连接有可读事件时，即有消息达到，处理即可。</p>
+<p><strong>负载均衡</strong> - 当向某个 <code>Topic</code> 发布一个消息时，该消息会被复制到所有的 <code>Channel</code>，如果 <code>Channel</code> 只有一个客户端，那么 <code>Channel</code> 就将消息投递给这个客户端；如果 <code>Channel</code> 的客户端不止一个，那么 <code>Channel</code> 将把消息随机投递给任何一个客户端，这也可以看做是客户端的负载均衡；</p>
+<h3 id="6-4-最小堆-优先级队列"><a href="#6-4-最小堆-优先级队列" class="headerlink" title="6.4 最小堆 - 优先级队列"></a>6.4 最小堆 - 优先级队列</h3><p><strong>优先级队列（ <code>Priority Queue</code> ）</strong> - 通过数据结构最小堆（ <code>min heap</code> ）实现，<code>pub</code> 一条消息时立即就排好序（优先级通过 <code>Priority-timeout</code> 时间戳排序），最近到期的放到最小堆根节点；取出一条消息直接从最小堆的根节点取出，时间复杂度很低。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Item <span class="keyword">struct</span> &#123;</span><br><span class="line">  Value    <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">  Priority <span class="keyword">int64</span></span><br><span class="line">  Index    <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// this is a priority queue as implemented by a min heap</span></span><br><span class="line"><span class="comment">// ie. the 0th element is the *lowest* value</span></span><br><span class="line"><span class="keyword">type</span> PriorityQueue []*Item</span><br></pre></td></tr></table></figure>
+<h3 id="6-5-队列设计-延时-运行队列"><a href="#6-5-队列设计-延时-运行队列" class="headerlink" title="6.5 队列设计 - 延时/运行队列"></a>6.5 队列设计 - 延时/运行队列</h3><p><strong>延时队列（ <code>deferredPQ</code> ）</strong> - 通过 <code>DPUB</code> 发布消息时带有 <code>timeout</code> 属性值实现，表示从当前时间戳多久后可以取出来消费；</p>
+<p><strong>运行队列（ <code>inFlightPQ</code> ）</strong> - 正在被消费者 <code>consumer</code> 消费的消息放入运行队列中，若处理失败或超时则自动重新放入（ <code>Requeue</code> ）队列，待下一次取出再次消费；消费成功（ <code>Finish</code> ）则删除对应的消息。</p>
+<h3 id="6-6-分布式-去中心化-无-SPOF"><a href="#6-6-分布式-去中心化-无-SPOF" class="headerlink" title="6.6 分布式 - 去中心化/无 SPOF"></a>6.6 分布式 - 去中心化/无 SPOF</h3><p><code>nsq</code> 被设计以分布的方式被使用，客户端连接到指定 <code>topic</code> 的所有生产者 <code>producer</code> 实例。没有中间人，没有消息代理 <code>broker</code> ，也没有单点故障（ <code>SPOF - single point of failure</code> ）。<br>这种拓扑结构消除单链，聚合，消费者直接连接所有生产者。从技术上讲，哪个客户端连接到哪个 <code>nsq</code> 不重要，只要有足够的消费者 <code>consumer</code> 连接到所有生产者 <code>producer</code>，以满足大量的消息，保证所有东西最终将被处理。</p>
+<p>对于 <code>nsqlookupd</code>，高可用性是通过运行多个实例来实现。他们不直接相互通信和数据被认为是最终一致。如果某个 <code>nsqd</code> 出现问题，<code>down</code> 机了，会和 <code>nsqlookupd</code> 断开，这样客户端从 <code>nsqlookupd</code> 得到的 <code>nsqd</code> 的列表永远是可用的。客户端连接的是所有的 <code>nsqd</code>，一个出问题了就用其他的连接，所以也不会受影响。</p>
+<h3 id="6-7-高可用、大吞吐量"><a href="#6-7-高可用、大吞吐量" class="headerlink" title="6.7 高可用、大吞吐量"></a>6.7 高可用、大吞吐量</h3><p><strong>高可用性（ <code>HA</code> ）</strong> - 通过集群化部署多个 <code>nsqd, nsqlookupd</code> 节点，可实现同时多生产者、多消费者运行，单一节点出现故障不影响系统运行；每个节点启动时都会先从磁盘读取未处理的消息，极端情况下，会丢失少量还未来得及存盘的内存中消息。</p>
+<p><strong>10 亿/天</strong> - 通过 <code>goroutine, channel</code> 充分利用 <code>golang</code> 语言的协程并发特性，可高并发处理大量消息的生产与消费。例如 <code>message</code> 为 <code>10 byte</code> 大小，则 50( <code>nsq</code> 节点数) * 10(字节) <em> 86400(一天秒数) </em> 25(每秒处理消息数) = 10 亿，可见达到十亿级别的吞吐量，通过快速部署节点即可实现。</p>
+<h3 id="6-8-协议规范"><a href="#6-8-协议规范" class="headerlink" title="6.8 协议规范"></a>6.8 协议规范</h3><p>自定义 <code>protocol</code>、魔法字符串 <code>magicStr</code> 进行通信、版本控制：</p>
+<p><strong>通信协议</strong></p>
+<p>nsqd</p>
+<blockquote>
+<p>FIN - 消息消费完成<br>RDY - 客户端连接就绪<br>REQ - 消息重放入队<br>PUB - 发布一条消息<br>MPUB - 发布多条消息<br>DPUB - 发布一条延时消息<br>NOP - 空操作<br>TOUCH - 重置消息过期时间<br>SUB - 消费者订阅 <code>Topic/Channel</code><br>CLS - 超时关闭连接<code>CLOSE_WAIT</code><br>AUTH - 权限认证</p>
+</blockquote>
+<p>nsqlookupd</p>
+<blockquote>
+<p>PING - 心跳检测<br>IDENTIFY - 权限与协议校验<br>REGISTER - <code>nsqd</code>节点注册<br>UNREGISTER - <code>nsqd</code>节点注销</p>
+</blockquote>
+<p><strong>版本控制</strong></p>
+<blockquote>
+<p>nsqd - “ V2” (4 byte)<br>nsqlookupd - “ V1” (4 byte)</p>
+</blockquote>
+<h3 id="6-9-快速扩缩容"><a href="#6-9-快速扩缩容" class="headerlink" title="6.9 快速扩缩容"></a>6.9 快速扩缩容</h3><p><code>nsq</code> 集群很容易配置（多种参数设定方式：命令行 &gt; 配置文件 &gt; 默认值）和部署（编译的二进制可执行文件没有运行时依赖），通过简单设置初始化参数，运维 <code>Ops</code> 就可以快速增加 <code>nsqd</code> 或 <code>nsqlookupd</code> 节点，为 <code>Topic</code> 引入一个新的消费者，只需启动一个配置了 <code>nsqlookup</code> 实例地址的 <code>nsq</code> 客户端。无需为添加任何新的消费者或生产者更改配置，大大降低了开销和复杂性。</p>
+<p>通过容器化管理多个实例将非常快速进行生产者、消费者的扩缩容，加上容器的流量监控、熔断、最低节点数等功能，保证了集群中 <code>nsqd</code> 的高效运行。</p>
+<h2 id="7-小结"><a href="#7-小结" class="headerlink" title="7. 小结"></a>7. 小结</h2><p>从源码可以看到，<code>nsqd</code> 的作用就是实际干活的组件，生产者 <code>producer</code>、消费者 <code>consumer</code> 利用 <code>nsqlookupd</code> 获取最新可用的节点，当连接上对应的 <code>Topic/Channel</code> 后，将消息 <code>message</code> 发送到客户端进行消费，处理成功则 <code>FIN(finish)</code>，或失败/超时后重新放回队列 <code>REQ(requeue)</code>，待下一次再消费处理。<code>nsqlookupd</code> 的作用就是管理 <code>nsqd</code> 节点的认证、注册、注销、心跳检测，动态维护分布式集群中最新可用的 <code>nsqd</code> 节点列表供客户端取用。</p>
+<p>在可靠性、有序性方便， <code>nsq</code> 保证消息至少被投递消费一次（幂等消费），当某个 <code>nsqd</code> 节点出现故障时，极端情况下内存里面的消息还未来得及存入磁盘，这部分消息将丢失；通过分布式多个 <code>consumer</code> 消费，会因为消息处理时长、网络延迟等导致消息重排，再次消费顺序与写入顺序不一致，因此在高可靠性、顺序性方面略存在不足，应根据具体的业务场景进行取舍。</p>
+<p><strong>综上：</strong> 源代码实现逻辑清晰明了，源码中使用了很多读写锁 <code>RWMutex</code>、原子值 <code>atomic.Value</code>、<code>interface</code> 接口复用、自定义通信协议 <code>protocol</code>、<code>http-decorator</code>装饰器、<code>goroutine/channel</code> 协程间并发通信，优先从内存（ <code>msqChan</code> ）存取消息，从而保证了高可用、高吞吐量的应用能力。快速高效的节点配置与扩展，配合容器云编排技术，可以高效实现集群的 scale 化。</p>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><ul>
+<li><a href="https://nsq.io/overview/design.html" target="_blank" rel="noopener">nsq 官方文档</a></li>
+<li><a href="https://www.cnblogs.com/xifengxiaoma/p/9391647.html" target="_blank" rel="noopener">常用消息队列介绍和对比</a></li>
+<li><a href="https://juejin.im/post/5d68cce2f265da039d32e39e" target="_blank" rel="noopener">nsq 去中心化原理</a></li>
+<li><a href="http://luodw.cc/2016/12/08/nsq01/#more" target="_blank" rel="noopener">NSQ 源码分析之概述</a></li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>王成，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com(武汉)</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#NSQ" >
+    <span class="tag-code">NSQ</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/12/04/third-party-pay/">
+        <span class="nav-arrow">← </span>
+        
+          如何高效对接第三方支付
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/12/17/redis-distributed-lock/">
+        
+          分布式锁的实现之 redis 篇
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#1-前言：为什么要使用-MQ-消息队列"><span class="toc-nav-text">1. 前言：为什么要使用 MQ 消息队列</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#2-主流-MQ-比较"><span class="toc-nav-text">2. 主流 MQ 比较</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#3-NSQ-初识"><span class="toc-nav-text">3. NSQ 初识</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#3-1-NSQ-特性"><span class="toc-nav-text">3.1 NSQ 特性</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#3-2-NSQ-组件"><span class="toc-nav-text">3.2 NSQ 组件</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#4-nsqd-源码解析"><span class="toc-nav-text">4. nsqd 源码解析</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-1-nsqd-执行入口"><span class="toc-nav-text">4.1 nsqd 执行入口</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-2-nsqd-执行主逻辑源码"><span class="toc-nav-text">4.2 nsqd 执行主逻辑源码</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#4-3-nsqd-流程图小结"><span class="toc-nav-text">4.3 nsqd 流程图小结</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#5-nsqlookupd-源码解析"><span class="toc-nav-text">5. nsqlookupd 源码解析</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#6-源码亮点"><span class="toc-nav-text">6. 源码亮点</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-1-使用装饰器"><span class="toc-nav-text">6.1 使用装饰器</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-2-锁与原子操作-RWMutex-atomic-Value"><span class="toc-nav-text">6.2 锁与原子操作 RWMutex/atomic.Value</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-3-消息多路分发-amp-负载均衡"><span class="toc-nav-text">6.3 消息多路分发 &amp; 负载均衡</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-4-最小堆-优先级队列"><span class="toc-nav-text">6.4 最小堆 - 优先级队列</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-5-队列设计-延时-运行队列"><span class="toc-nav-text">6.5 队列设计 - 延时/运行队列</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-6-分布式-去中心化-无-SPOF"><span class="toc-nav-text">6.6 分布式 - 去中心化/无 SPOF</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-7-高可用、大吞吐量"><span class="toc-nav-text">6.7 高可用、大吞吐量</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-8-协议规范"><span class="toc-nav-text">6.8 协议规范</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#6-9-快速扩缩容"><span class="toc-nav-text">6.9 快速扩缩容</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#7-小结"><span class="toc-nav-text">7. 小结</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#参考资料"><span class="toc-nav-text">参考资料</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/12/06/nsq-src/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "走进 NSQ 源码细节",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

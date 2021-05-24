@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      走进Golang之运行与Plan9汇编 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>走进Golang之运行与Plan9汇编</h2>
+  <p class="post-date">2019-11-27</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><p>通过上一篇<a href="https://xiaomi-info.github.io/2019/11/13/golang-compiler-principle/">走进 Golang 之汇编原理</a>，我们知道了目标代码的生成经历了那些过程。今天我们一起来学习一下生成的目标代码如何在计算机上执行。以及通过查阅 <code>Golang</code> 的 Plan9 汇编来了解 Golang 的一些内部秘密。</p>
+<h2 id="Golang-的运行环境"><a href="#Golang-的运行环境" class="headerlink" title="Golang 的运行环境"></a>Golang 的运行环境</h2><p>当我们把编译后的 Go 代码运行起来，它会以进程的方式出现在系统中。然后开始处理请求、数据，我们会看到这个进程占用了内存消耗、cpu 占比等等信息。本文就是要来解释在程序的运行过程中，内存、CPU、操作系统（当然还有其它的硬件，文中关系不大，就不说了）是如何进行配合，完成了我们代码所指定的事情。</p>
+<h3 id="内存"><a href="#内存" class="headerlink" title="内存"></a>内存</h3><p>首先，我们先来说说内存。先来看一个我们运行的 go 进程。</p>
+<p>代码如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">  <span class="string">"log"</span></span><br><span class="line">  <span class="string">"net/http"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  http.HandleFunc(<span class="string">"/"</span>, sayHello)</span><br><span class="line"></span><br><span class="line">  err := http.ListenAndServe(<span class="string">":9999"</span>, <span class="literal">nil</span>)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatal(<span class="string">"ListenAndServe: "</span>, err)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sayHello</span><span class="params">(w http.ResponseWriter, r *http.Request)</span></span> &#123;</span><br><span class="line">  fmt.Printf(<span class="string">"fibonacci: %d\n"</span>, fibonacci(<span class="number">1000</span>))</span><br><span class="line">  _, _ = fmt.Fprint(w, <span class="string">"Hello World!"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">fibonacci</span><span class="params">(num <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> num &lt; <span class="number">2</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> fibonacci(num<span class="number">-1</span>) + fibonacci(num<span class="number">-2</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>来看一下执行情况</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">dayu.com &gt;ps aux</span><br><span class="line"></span><br><span class="line">USER               PID   %CPU  %MEM      VSZ     RSS    TT  STAT   STARTED    TIME     COMMAND</span><br><span class="line">xxxxx              3584  99.2  0.1     4380456  4376   s003  R+    8:33下午   0:05.81  ./myhttp</span><br></pre></td></tr></table></figure>
+<p>这里我们先来不关注其它指标，先来看 <code>VSZ</code> 与 <code>RSS</code>。</p>
+<ul>
+<li>VSZ: 是指虚拟地址，他是程序实际操作的内存。包含了分配还没有使用的内存。</li>
+<li>RSS: 是实际的物理内存，包含了栈内存与堆内存。</li>
+</ul>
+<p>每一个进程都是运行在自己的内存沙盒里，程序被分配的地址都是 “虚拟内存”，物理内存对程序开发者来说实际是不可见的，而且虚拟地址比进程实际的物理地址要大的多。我们经常编程中取指针对应的地址实际就是虚拟地址。这里一定要注意区分虚拟内存与物理内存。来一张图感受一下。</p>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-0.jpg">
+<p>这张图主要是为了说明两个问题：</p>
+<ol>
+<li>程序使用的是虚拟内存，但是操作系统会把虚拟内存映射到物理内存；你会发现自己机器上所有进程的 VSZ 总和要比实际物理内存大得多；</li>
+<li>物理内存可以被多个进程共享，甚至一个进程内的不同地址可能映射的都是同一个物理内存地址。</li>
+</ol>
+<p>上面搞明白了程序中的内存具体是指什么，接下来说明程序是如何使用内存的（虚拟内存），内存说白了就是比硬盘存取速度更快的一个硬件，为了方便内存的管理，操作系统把分配给进程的内存划分成了不同的功能块。像我们经常说的：代码区，静态数据区，堆区，栈区等。</p>
+<p>这里借用一张网络上的图来看一下。</p>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-1.jpg">
+<p>这里就是我们程序（进程）在虚拟内存中的分布。</p>
+<p>代码区：存放的就是我们编译后的机器码，一般来说这个区域只能是只读。</p>
+<p>静态数据区：存放的是全局变量与常量。这些变量的地址编译的时候就确定了（这也是使用虚拟地址的好处，如果是物理地址，这些地址编译的时候是不可能确定的）。Data 与 BSS 都属于这一部分。这部分只有程序中止（kill 掉、crasg 掉等）才会被销毁。</p>
+<p>栈区：主要是 <code>Golang</code> 里边的函数、方法以及其本地变量存储的地方。这部分伴随函数、方法开始执行而分配，运行完后就被释放，特别注意这里的释放并不会清空内存。后面文章讲内存分配的时候再详细说；还有一个点需要记住栈一般是从高地址向低地址方向分配，换句话说：高地址属于栈低，低地址属于栈顶，它分配方向与堆是相反的。</p>
+<p>堆区：像 <code>C/C++</code> 语言，堆完全是程序员自己控制的。但是 <code>Golang</code> 里边由于有 GC 机制，我们写代码的时候并不需要关心内存是在栈还是堆上分配。<code>Golang</code> 会自己判断如果变量的生命周期在函数退出后还不能销毁或者栈上资源不够分配等等情况，就会被放到堆上。堆的性能会比栈要差一些。原因也留到内存分配相关的文章再给大家介绍。</p>
+<p>内存的结构搞明白了，我们的程序被加载到内存还需要操作系统来指挥才能正确运行。</p>
+<p>补充一个比较重要的概念：</p>
+<blockquote>
+<p>寻址空间：一般指的是 CPU 对于内存寻址的能力，通俗地说，就是能最多用到多少内存的一个问题。比如：32 条地址线（32 位机器），那么总的地址空间就有 2^32 个，如果是 64 位机器，就是 2^64 个寻址空间。可以使用 <code>uname -a</code> 来查看自己系统支持的位数字。</p>
+</blockquote>
+<h3 id="操作系统、CPU、内存互相配合"><a href="#操作系统、CPU、内存互相配合" class="headerlink" title="操作系统、CPU、内存互相配合"></a>操作系统、CPU、内存互相配合</h3><p>为了讲清楚程序运行与调用，我们得先理清楚操作系统、内存、CPU、寄存器这几者之间的关系。</p>
+<ul>
+<li>CPU: 计算机的大脑，它才能理解并执行指令；</li>
+<li>寄存器：严格讲寄存器是 CPU 的组成部分，它主要负责 CPU 在计算时临时存储数据；当然 CPU 还有多级的高速缓存，与我们这里相关度不大，就略过，大家知道其目的是为了弥补内存与 CPU 速度的差距即可；</li>
+<li>内存：像上面内存被划分成不同区，每一部分存了不同的数据；当然这些区的划分、以及虚拟内存与物理内存的映射都是操作系统来做的；</li>
+<li>操作系统：控制各种硬件资源，为其它运行的程序提供操作接口（系统调用）及管理。</li>
+</ul>
+<p>这里操作系统是一个软件，CPU、寄存器、内存（物理内存）都是实打实的硬件。操作系统虽然也是一堆代码写出来的。但是她是硬件对其它应用程序的接口。总的来讲操作系统通过系统调用控制所有的硬件资源，他把其它的程序调度到 CPU 上让其它程序执行，但是为了让每个程序都有机会使用 CPU，CPU 又通过时间中断把控制权交给操作系统。</p>
+<p>让操作系统可以控制我们的程序，我们编写的程序需要遵循操作系统的规定。这样操作系统才能控制程序执行、切换进程等操作。</p>
+<p>最后我们的代码被编译成机器码之后，本质就是一条条的指令。我们期望的就是 CPU 去执行完这些指令进而完成任务。而操作系统又能够帮助我们让 CPU 来执行代码以及提供所需资源的调用接口（系统调用）。是不是非常简单？</p>
+<h2 id="Go-程序的调用规约"><a href="#Go-程序的调用规约" class="headerlink" title="Go 程序的调用规约"></a>Go 程序的调用规约</h2><p>在上面我们知道整个虚拟内存被我们划分为：代码区、静态数据区、栈区、堆区。接下来要讲的 Go 程序的调用规约（其实就是函数、方法运行的规则），主要是涉及上面所说的栈部分（堆部分会在内存分配的文章里边去讲）。以及计算机软硬各个部分如何配合。接下来我们就来看一下程序的基本单位函数跟方法是怎么执行与相互调用的。</p>
+<h3 id="函数在栈上的分布"><a href="#函数在栈上的分布" class="headerlink" title="函数在栈上的分布"></a>函数在栈上的分布</h3><p>这一部分，我们先来了解一些理论，然后接着用一个实际的例子来分析一下。先通过一张图来看一下在 <code>Golang</code> 中函数是如何在栈上分布的。</p>
+<p>几个涉及到的专业用语：</p>
+<ul>
+<li>栈：这里说的栈跟上面的解释含义一致。无论是进程、线程、goroutine 都有自己的调用栈；</li>
+<li>栈帧：可以理解是函数调用时在栈上为函数所分配的区域；</li>
+<li>调用者：caller，比如：a 函数调用了 b 函数，那么 a 就是调用者</li>
+<li>被调者：callee，还是上面的例子，b 就是被调者</li>
+</ul>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-2.jpg">
+<p>这幅图所展示的就是一个 <code>栈帧</code> 的结构。也可以说栈桢是栈给一个函数分配的栈空间，它包括了函数调用者地址、本地变量、返回值地址、调用者参数等信息。</p>
+<p>这里有几个注意点，图中的 <code>BP</code>、<code>SP</code>都表示对应的寄存器。</p>
+<ul>
+<li>BP：基址指针寄存器(extended base pointer)，也叫帧指针，存放着一个指针，表示函数栈开始的地方。</li>
+<li>SP：栈指针寄存器(extended stack pointer)，存放着一个指针，存储的是函数栈空间的栈顶，也就是函数栈空间分配结束的地方，注意这里是硬件寄存器，不是 Plan9 中的伪寄存器。</li>
+</ul>
+<p><code>BP</code> 与 <code>SP</code> 放在一起，一个表示开始（栈顶）、一个表示结束（栈低）。</p>
+<p>有了上面的基础知识，接着下面用实际的例子来验证一下。</p>
+<h3 id="Go-的调用实例"><a href="#Go-的调用实例" class="headerlink" title="Go 的调用实例"></a>Go 的调用实例</h3><p>才开始，我们就从一个简单的函数开始来分析一下整个函数的调用过程（下面涉及到 <code>Plan9</code> 汇编，请别慌，大部分都能够看懂，并且我也会写注释）。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">  a := <span class="number">3</span></span><br><span class="line">  b := <span class="number">2</span></span><br><span class="line">  returnTwo(a, b)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">returnTwo</span><span class="params">(a, b <span class="keyword">int</span>)</span> <span class="params">(c, d <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">  tmp := <span class="number">1</span> <span class="comment">// 这一行的主要目的是保证栈桢不为0，方便分析</span></span><br><span class="line">  c = a + b</span><br><span class="line">  d = b - tmp</span><br><span class="line">  <span class="keyword">return</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面有两个函数，<code>main</code> 定义了两个本地变量，然后调用 <code>returnTwo</code> 函数。<code>returnTwo</code> 函数有两个参数与两个返回值。设计两个返回值主要是一起来看一下 <code>golang</code> 的多返回值是如何实现的。接下来我们把上面的代码对应的汇编代码展示出来。</p>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-3.jpg">
+<p>有几行代码需要特别解释下，</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0x0000 00000 (test1.go:3)       TEXT    &quot;&quot;.main(SB), ABIInternal, $56-0</span><br></pre></td></tr></table></figure>
+<p>这一行中的重点信息：<code>$56-0</code>。<strong>56</strong> 表示的该函数栈桢大小（两个本地变量，两个参数是 int 类型，两个返回值是 int 类型，1 个保存 base pointer，合计 7 * 8 = 56）；0 表示 <code>mian</code> 函数的参数与返回值大小。待会可以在 <code>returnTwo</code> 中去看一下它的返回值又是多少。</p>
+<p>接下来在看一下计算机是怎么在栈上分配大小的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">0x000f 00015 (test1.go:3)       SUBQ    $56, SP // 分配，56的大小在上面第一行定义了</span><br><span class="line">... ...</span><br><span class="line">0x004b 00075 (test1.go:7)       ADDQ    $56, SP // 释放掉，但是并未清空</span><br></pre></td></tr></table></figure>
+<p>这两行，一个是分配，一个是释放。为什么用了 <code>SUBQ</code> 指令就能进行分配呢？而 <code>ADDQ</code> 是释放？记得我们前面说过吗？ <code>SP</code> 是一个指针寄存器，并且指向栈顶，栈又是从高地址向低地址分配。那么对它做一次减法，是不是表示从高地址向低地址方向移动指针了呢？释放也是同样的道理，一次加法操作又把 <code>SP</code> 恢复到初始状态。</p>
+<p>再来看一下对 <code>BP</code> 寄存器的操作。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">0x0013 00019 (test1.go:3)       MOVQ    BP, 48(SP) // 保存BP</span><br><span class="line">0x0018 00024 (test1.go:3)       LEAQ    48(SP), BP // BP存放了新的地址</span><br><span class="line">... ...</span><br><span class="line">0x0046 00070 (test1.go:7)       MOVQ    48(SP), BP // 恢复BP的地址</span><br></pre></td></tr></table></figure>
+<p>这三行代码是不是感觉很变扭？写来写去让人云里雾里的。我先用文字描述一下，后面再用图来解释。</p>
+<blockquote>
+<p>我们先做如下假设：此时 BP 指向的 <strong>值</strong> 是：0x00ff，48(SP) 的 <strong>地址</strong> 是：0x0008。</p>
+</blockquote>
+<ul>
+<li>第一条指令 <code>MOVQ BP, 48(SP)</code> 是把 <code>0x00ff</code> 写入到 <code>48(SP)</code>的位置；</li>
+<li>第二条指令 <code>LEAQ 48(SP), BP</code> 是更新寄存器指针，让 <code>BP</code> 保存 <code>48(SP)</code> 这个位置的地址，也就是 <code>0x00ff</code> 这个值。</li>
+<li>第三条指令 <code>MOVQ 48(SP), BP</code> ，因为一开始 <code>48(SP)</code> 保存了最开始 <code>BP</code> 的所存的值 <code>0x00ff</code>，所以这里是又把 <code>BP</code> 恢复回去了。</li>
+</ul>
+<p>这几行代码的作用至关重要，正因为如此在执行的时候，我们才能找到函数开始的地方以及回到调用函数的位置，它才可以继续往下执行（如果觉得饶，先放过，后面有图，看完后再回来理解）。接着来看一下 <code>returnTwo</code> 函数。</p>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-4.jpg">
+<p>这里 <code>NOSPLIT|ABIInternal, $0-32</code> 说明，该函数的栈桢大小是 0，由于有两个 int 参数，以及 2 个 int 返回值，合计为 <code>4*8 = 32</code> 字节大小，是不是跟上面的 <code>main</code> 函数对上了？。</p>
+<p>这里有没有对 <code>returnTwo</code> 函数的栈桢大小是 0 表示迷惑呢？难道这个函数不需要栈空间吗？其实主要原因是：golang 的参数传递与返回值都是要求使用栈来进行的（这也是为什么 go 能够支持多参数返回的原因）。所以参数与返回值所需空间都由 <code>caller</code> 来提供。</p>
+<p>接下来，我们用完整的图来演示一下这个调用过程。</p>
+<img src="/2019/11/27/golang-compiler-plan9/go-hb-5.jpg">
+<blockquote>
+<p>这个图就画了将近 1 个小时，希望对大家理解有帮助。</p>
+</blockquote>
+<p>整个的流程是：初始化 —-&gt; call main function —-&gt; call returnTwo function —-&gt; returnTwo return —-&gt; main return。</p>
+<p>通过这张图，在结合我上面的文字解释，相信大家能够理解了。不过这里还有几个注意点：</p>
+<ul>
+<li><strong>BP</strong> 与 <strong>SP</strong> 是寄存器，它保存的是栈上的地址，所以执行中可以对 <code>SP</code> 做运算找到下一个指令的位置；</li>
+<li>栈被回收 <code>ADDQ $56, SP</code> ，只是改变了 <code>SP</code> 指向的位置，内存中的数据并不会清空，只有下次被分配使用的时候才会清空；</li>
+<li>callee 的参数、返回值内存都是 caller 分配的；</li>
+<li>returnTwo ret 的时候，<strong>call returnTwo 的 next 指令</strong> 所在栈位置会被弹出，也就是图中 <code>0x0d00</code> 地址所保存的指令，所以 returnTwo 函数返回后，<code>SP</code> 又指向了 <code>0x0d08</code> 地址。</li>
+</ul>
+<hr>
+<p>由于上面涉及到一些 <code>Plan9</code> 的知识，就顺带一起介绍一些它的语法，如果直接讲语法会很枯燥，下面会结合一些实际中会用到的情况来介绍。既有收获又能学会语法。</p>
+<h2 id="Go-的汇编-plan9"><a href="#Go-的汇编-plan9" class="headerlink" title="Go 的汇编 plan9"></a>Go 的汇编 plan9</h2><p>我们整个程序的编译最终会被翻译成机器码，而汇编可以算是机器码的文本形式，他们之间可以一一对应。所以如果我们能够看懂汇编一点点就能够分析出很多实际问题。</p>
+<p>开发 go 语言的都是当前世界最 TOP 的那群程序员，他们选择了持续装逼，不用标准的 <strong>AT&amp;T</strong> 也不用 <strong>Intel</strong> 汇编器，偏要自己搞一套，没办法，谁让人家牛呢！Golang 的汇编是基于 <code>Plan9</code> 汇编的，个人觉得要完全学懂太复杂了，因为这涉及到很多底层知识。不过如果只是要求看懂还是能够做到的。下面我们就举一些例子来试试看。</p>
+<blockquote>
+<p>PS: 这东西完全学懂也没有必要，投入产出比太低了，对于一个应用工程师能够看懂就行。</p>
+</blockquote>
+<p>在正式开始前，我们还是补充一些必要信息，上文已经涉及过一些，为了完整这里在整体介绍一下。</p>
+<p><strong>几个重要的伪寄存器：</strong></p>
+<ul>
+<li>SB：是一个虚拟寄存器，保存了静态基地址(static-base) 指针，即我们程序地址空间的开始地址；</li>
+<li>NOSPLIT：向编译器表明不应该插入 <code>stack-split</code> 的用来检查栈需要扩张的前导指令；</li>
+<li>FP：使用形如 symbol+offset(FP) 的方式，引用函数的输入参数；</li>
+<li>SP：plan9 的这个 SP 寄存器指向当前栈帧的局部变量的开始位置，使用形如 symbol+offset(SP) 的方式，引用函数的局部变量，注意：这个寄存器与上文的寄存器是不一样的，这里是伪寄存器，而我们展示出来的都是硬件寄存器。</li>
+</ul>
+<p>其它还有一些操作指令，根据名字多半都能够看出来，就不再介绍，直接开始干。</p>
+<h3 id="查看-go-应用代码对应的翻译函数"><a href="#查看-go-应用代码对应的翻译函数" class="headerlink" title="查看 go 应用代码对应的翻译函数"></a>查看 go 应用代码对应的翻译函数</h3><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">()</span> []<span class="title">string</span></span> &#123;</span><br><span class="line">    a := <span class="built_in">make</span>([]<span class="keyword">string</span>, <span class="number">10</span>)</span><br><span class="line">    <span class="keyword">return</span> a</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">--------</span><br><span class="line"></span><br><span class="line"><span class="string">""</span>.test STEXT size=<span class="number">151</span> args=<span class="number">0x18</span> locals=<span class="number">0x40</span></span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       TEXT    <span class="string">""</span>.test(SB), ABIInternal, $<span class="number">64</span><span class="number">-24</span> <span class="comment">// 栈帧大小，与参数、返回值大小</span></span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    (TLS), CX</span><br><span class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       CMPQ    SP, <span class="number">16</span>(CX)</span><br><span class="line">        <span class="number">0x000d</span> <span class="number">00013</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       JLS     <span class="number">141</span></span><br><span class="line">        <span class="number">0x000f</span> <span class="number">00015</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       SUBQ    $<span class="number">64</span>, SP</span><br><span class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    BP, <span class="number">56</span>(SP)</span><br><span class="line">        <span class="number">0x0018</span> <span class="number">00024</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       LEAQ    <span class="number">56</span>(SP), BP</span><br><span class="line">        ... ...</span><br><span class="line">        <span class="number">0x001d</span> <span class="number">00029</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    $<span class="number">0</span>, <span class="string">""</span>.~r0+<span class="number">72</span>(SP)</span><br><span class="line">        <span class="number">0x0026</span> <span class="number">00038</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       XORPS   X0, X0</span><br><span class="line">        <span class="number">0x0029</span> <span class="number">00041</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVUPS  X0, <span class="string">""</span>.~r0+<span class="number">80</span>(SP)</span><br><span class="line">        <span class="number">0x002e</span> <span class="number">00046</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       PCDATA  $<span class="number">2</span>, $<span class="number">1</span></span><br><span class="line">        <span class="number">0x002e</span> <span class="number">00046</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       LEAQ    <span class="keyword">type</span>.<span class="keyword">string</span>(SB), AX</span><br><span class="line">        <span class="number">0x0035</span> <span class="number">00053</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       PCDATA  $<span class="number">2</span>, $<span class="number">0</span></span><br><span class="line">        <span class="number">0x0035</span> <span class="number">00053</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       MOVQ    AX, (SP)</span><br><span class="line">        <span class="number">0x0039</span> <span class="number">00057</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       MOVQ    $<span class="number">10</span>, <span class="number">8</span>(SP)</span><br><span class="line">        <span class="number">0x0042</span> <span class="number">00066</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       MOVQ    $<span class="number">10</span>, <span class="number">16</span>(SP)</span><br><span class="line">        <span class="number">0x004b</span> <span class="number">00075</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       CALL    runtime.makeslice(SB) <span class="comment">// 对应的底层runtime function</span></span><br><span class="line">        ... ...</span><br><span class="line">        <span class="number">0x008c</span> <span class="number">00140</span> (test1.<span class="keyword">go</span>:<span class="number">8</span>)       RET</span><br><span class="line">        <span class="number">0x008d</span> <span class="number">00141</span> (test1.<span class="keyword">go</span>:<span class="number">8</span>)       NOP</span><br><span class="line">        <span class="number">0x008d</span> <span class="number">00141</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       PCDATA  $<span class="number">0</span>, $<span class="number">-1</span></span><br><span class="line">        <span class="number">0x008d</span> <span class="number">00141</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       PCDATA  $<span class="number">2</span>, $<span class="number">-1</span></span><br><span class="line">        <span class="number">0x008d</span> <span class="number">00141</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       CALL    runtime.morestack_noctxt(SB)</span><br><span class="line">        <span class="number">0x0092</span> <span class="number">00146</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       JMP     <span class="number">0</span></span><br></pre></td></tr></table></figure>
+<p>根据对应的代码行数与名字，很明显的可以看到应用层写的 <code>make</code> 对应底层是 <code>makeslice</code>。</p>
+<h3 id="逃逸分析"><a href="#逃逸分析" class="headerlink" title="逃逸分析"></a>逃逸分析</h3><p>这里先说一下逃逸分析的概念。这里牵扯到栈、堆分配的问题。如果变量被分配到栈上，会伴随函数调用结束自动回收，并且分配效率很高；其次分配到堆上，则需要 GC 进行标记回收。所谓逃逸就是指变量从栈上逃到了堆上（很多人对这个概念都不清楚就在谈逃逸分析，面试遇到了好几次 😓）。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">()</span> *<span class="title">int</span></span> &#123;</span><br><span class="line">  t := <span class="number">3</span></span><br><span class="line">  <span class="keyword">return</span> &amp;t</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">------</span><br><span class="line"></span><br><span class="line"><span class="string">""</span>.test STEXT size=<span class="number">98</span> args=<span class="number">0x8</span> locals=<span class="number">0x20</span></span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       TEXT    <span class="string">""</span>.test(SB), ABIInternal, $<span class="number">32</span><span class="number">-8</span></span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    (TLS), CX</span><br><span class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       CMPQ    SP, <span class="number">16</span>(CX)</span><br><span class="line">        <span class="number">0x000d</span> <span class="number">00013</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       JLS     <span class="number">91</span></span><br><span class="line">        <span class="number">0x000f</span> <span class="number">00015</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       SUBQ    $<span class="number">32</span>, SP</span><br><span class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    BP, <span class="number">24</span>(SP)</span><br><span class="line">        <span class="number">0x0018</span> <span class="number">00024</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       LEAQ    <span class="number">24</span>(SP), BP</span><br><span class="line">        ... ...</span><br><span class="line">        <span class="number">0x001d</span> <span class="number">00029</span> (test1.<span class="keyword">go</span>:<span class="number">6</span>)       MOVQ    $<span class="number">0</span>, <span class="string">""</span>.~r0+<span class="number">40</span>(SP)</span><br><span class="line">        <span class="number">0x0026</span> <span class="number">00038</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       PCDATA  $<span class="number">2</span>, $<span class="number">1</span></span><br><span class="line">        <span class="number">0x0026</span> <span class="number">00038</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       LEAQ    <span class="keyword">type</span>.<span class="keyword">int</span>(SB), AX</span><br><span class="line">        <span class="number">0x002d</span> <span class="number">00045</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       PCDATA  $<span class="number">2</span>, $<span class="number">0</span></span><br><span class="line">        <span class="number">0x002d</span> <span class="number">00045</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       MOVQ    AX, (SP)</span><br><span class="line">        <span class="number">0x0031</span> <span class="number">00049</span> (test1.<span class="keyword">go</span>:<span class="number">7</span>)       CALL    runtime.newobject(SB) <span class="comment">// 堆上分配空间，表示逃逸了</span></span><br><span class="line">        ... ...</span><br></pre></td></tr></table></figure>
+<p>这里如果是对 <code>slice</code> 使用汇编进行逃逸分析，并不会很直观。因为只会看到调用了 <code>runtime.makeslice</code> 函数，该函数内部其实又调用了 <code>runtime.mallocgc</code> 函数，这个函数会分配的内存其实就是堆上的内存（如果栈上足够保存，是不会看到对 <code>runtime.makslice</code> 函数的调用）。</p>
+<p>实际 go 也提供了更方便的命令来进行逃逸分析：<code>go build -gcflags=&quot;-m&quot;</code>，如果真的是做逃逸分析，建议使用该命令，别折腾用汇编。</p>
+<h3 id="传值还是传指针"><a href="#传值还是传指针" class="headerlink" title="传值还是传指针"></a>传值还是传指针</h3><p>对于 golang 中的基本类型：字符串、整型、布尔类型就不多说了，肯定是值传递，那么对于结构体、指针到底是值传递还是指针传递呢？</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Student <span class="keyword">struct</span> &#123;</span><br><span class="line">    name <span class="keyword">string</span></span><br><span class="line">    age  <span class="keyword">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    jack := &amp;Student&#123;<span class="string">"jack"</span>, <span class="number">30</span>&#125;</span><br><span class="line">    test(jack)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">(s *Student)</span> *<span class="title">Student</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">-------</span><br><span class="line"></span><br><span class="line"><span class="string">""</span>.test STEXT nosplit size=<span class="number">20</span> args=<span class="number">0x10</span> locals=<span class="number">0x0</span></span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">14</span>)      TEXT    <span class="string">""</span>.test(SB), NOSPLIT|ABIInternal, $<span class="number">0</span><span class="number">-16</span></span><br><span class="line">        ... ...</span><br><span class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (test1.<span class="keyword">go</span>:<span class="number">14</span>)      MOVQ    $<span class="number">0</span>, <span class="string">""</span>.~r1+<span class="number">16</span>(SP) <span class="comment">// 初始返回值为0</span></span><br><span class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      PCDATA  $<span class="number">2</span>, $<span class="number">1</span></span><br><span class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      PCDATA  $<span class="number">0</span>, $<span class="number">1</span></span><br><span class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      MOVQ    <span class="string">""</span>.s+<span class="number">8</span>(SP), AX <span class="comment">// 将引用地址复制到 AX 寄存器</span></span><br><span class="line">        <span class="number">0x000e</span> <span class="number">00014</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      PCDATA  $<span class="number">2</span>, $<span class="number">0</span></span><br><span class="line">        <span class="number">0x000e</span> <span class="number">00014</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      PCDATA  $<span class="number">0</span>, $<span class="number">2</span></span><br><span class="line">        <span class="number">0x000e</span> <span class="number">00014</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      MOVQ    AX, <span class="string">""</span>.~r1+<span class="number">16</span>(SP) <span class="comment">// 将 AX 的引用地址又复制到返回地址</span></span><br><span class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (test1.<span class="keyword">go</span>:<span class="number">15</span>)      RET</span><br></pre></td></tr></table></figure>
+<p>通过这里可以看到在 go 里边，只有值传递，因为它底层还是通过拷贝对应的值。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>今天的文章到此结束，本次主要讲了下面几个点：</p>
+<ol>
+<li>计算机软硬资源之间的相互配合；</li>
+<li><code>Golang</code> 编写的代码，函数与方法是怎么执行的，主要讲了栈上分配与相关调用；</li>
+<li>使用 <code>Plan9</code> 分析了一些常见的问题。</li>
+</ol>
+<p>希望本文对大家在理解、学习 Go 的路上有一些帮助。</p>
+<p><strong>参考资料</strong></p>
+<ul>
+<li>[1]<a href="https://blog.learngoprogramming.com/a-visual-guide-to-golang-memory-allocator-from-ground-up-e132258453ed" target="_blank" rel="noopener">a visual guide to go memory allocator from scratch</a></li>
+<li>[2]<a href="https://golang.org/doc/asm" target="_blank" rel="noopener">a quick guide to go’s assembler</a></li>
+<li>[3]<a href="https://studygolang.com/articles/2917" target="_blank" rel="noopener">a quick guide to go’s assembler 中文版</a></li>
+<li>[4]<a href="https://xargin.com/go-and-plan9-asm/" target="_blank" rel="noopener">go 和 plan9 汇编</a></li>
+<li>[5]<a href="https://xargin.com/plan9-assembly/" target="_blank" rel="noopener">plan9 assembly 完全解析</a></li>
+<li>[6]<a href="https://zh.wikipedia.org/wiki/%E5%AF%84%E5%AD%98%E5%99%A8" target="_blank" rel="noopener">寄存器 wiki</a></li>
+<li>[7]<a href="https://segmentfault.com/a/1190000019753885" target="_blank" rel="noopener">go 函数调用 ━ 栈和寄存器视角</a></li>
+</ul>
+<h2 id="下回预告"><a href="#下回预告" class="headerlink" title="下回预告"></a>下回预告</h2><p>到目前为止，我们已经了解到 <code>Go</code> 代码是怎么生成机器码的；机器码又是如何在计算机中执行的，特别是函数对内存上栈区间的使用。接下来将会介绍 <code>Golang</code> 的内存分配策略是如何的。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>何磊，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com(武汉) helei5(a)xiaomi.com(北京)</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#汇编" >
+    <span class="tag-code">汇编</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/11/13/golang-compiler-principle/">
+        <span class="nav-arrow">← </span>
+        
+          走进Golang之编译器原理
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/12/04/third-party-pay/">
+        
+          如何高效对接第三方支付
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Golang-的运行环境"><span class="toc-nav-text">Golang 的运行环境</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#内存"><span class="toc-nav-text">内存</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#操作系统、CPU、内存互相配合"><span class="toc-nav-text">操作系统、CPU、内存互相配合</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Go-程序的调用规约"><span class="toc-nav-text">Go 程序的调用规约</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#函数在栈上的分布"><span class="toc-nav-text">函数在栈上的分布</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#Go-的调用实例"><span class="toc-nav-text">Go 的调用实例</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Go-的汇编-plan9"><span class="toc-nav-text">Go 的汇编 plan9</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#查看-go-应用代码对应的翻译函数"><span class="toc-nav-text">查看 go 应用代码对应的翻译函数</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#逃逸分析"><span class="toc-nav-text">逃逸分析</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#传值还是传指针"><span class="toc-nav-text">传值还是传指针</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#下回预告"><span class="toc-nav-text">下回预告</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/11/27/golang-compiler-plan9/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "走进Golang之运行与Plan9汇编",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

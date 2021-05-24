@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      Istio 源码解析系列(一)-istio源码架构介绍及开发环境搭建 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>Istio 源码解析系列(一)-istio源码架构介绍及开发环境搭建</h2>
+  <p class="post-date">2018-05-03</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本系列文章主要从源码（<a href="https://github.com/istio/istio/tree/35e2b9042fe3d4ebe68772311aa1ebe46b66a1be" target="_blank" rel="noopener">35e2b904</a>）出发，对istio做深入剖析，让大家对istio有更深的认知，从而方便平时排查问题。不了解Service Mesh和Istio的同学请先阅读敖小剑老师如下文章进行概念上的理解：</p>
+<ul>
+<li><a href="https://skyao.io/publication/service-mesh-next-generation-microservice/" target="_blank" rel="noopener">Service Mesh：下一代微服务</a></li>
+<li><a href="https://skyao.io/publication/istio-introduction/" target="_blank" rel="noopener">服务网格新生代-Istio</a></li>
+</ul>
+<p>本文主要对istio在ubuntu16.04下环境搭建做简单介绍，Mac用户和其他linux发行版用户请根据bash脚本做相应调整。</p>
+<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>Istio为希腊文，意思是“启航”，和“kubernetes（舵手）”遥相呼应，是一个开源的微服务管理、保护、监控的基础设施。Istio发音<strong>“意丝帝欧”</strong>，重音在“意”上。</p>
+<p>前两篇文章主要对istio开发环境以及通过服务治理配置生效流程做了介绍。考虑到有些用户可能没有接触过Istio，本文会对Istio整体架构、内部各组件做介绍。</p>
+<p>Istio是逻辑上分为数据平面（Data Plane）和控制平面（Control Plane）。</p>
+<ul>
+<li>数据平面的含义是什么？官网是这么描述的：<blockquote>
+<p>The data plane is composed of a set of intelligent proxies (Envoy) deployed as sidecars that mediate and control all network communication between microservices.</p>
+</blockquote>
+</li>
+</ul>
+<p>数据平面由一组作为sidecar智能代理（Envoy）和它掌控网络通信的的微服务实例组成。sidecar的意思是边三轮，一个Envoy实例掌控一个微服务实例的入口和出口流量，像边三轮一样。</p>
+<ul>
+<li>对于控制平面，官网给出的定义是：<blockquote>
+<p>The control plane is responsible for managing and configuring proxies to route traffic, as well as enforcing policies at runtime.</p>
+</blockquote>
+</li>
+</ul>
+<p>控制平面由Pliot、Mixer、Istio-Auth组成，负责管理和配置代理的路由流量以及运行时服务治理策略的执行。</p>
+<h1 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h1><p>Istio架构图如下所示：<br><img src="https://upload-images.jianshu.io/upload_images/11974228-873e7036abd70c9d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt></p>
+<ul>
+<li><p>Envoy<br>是一个高性能轻量级代理，它掌控了service的入口流量和出口流量，它提供了很多内置功能，如动态负载服务发现、负载均衡、TLS终止、HTTP/2 &amp; gRPC流量代理、熔断、健康检查等功能。</p>
+</li>
+<li><p>Mixer<br>翻译过来是混音器，Mixer负责在整个Service Mesh中实施访问控制和使用策略。Mixer是一个可扩展组件，内部提供了多个模块化的适配器(<a href="https://github.com/istio/istio/tree/master/mixer/adapter" target="_blank" rel="noopener">adapter</a>)。通过各种适配器。<br>Envoy提供request级别的属性（<a href="https://istio.io/docs/concepts/policy-and-control/attributes.html" target="_blank" rel="noopener">attributes</a>）数据。这些数据交由Mixer进行评估和处理，Mixer中的各种适配器(<a href="https://github.com/istio/istio/tree/master/mixer/adapter" target="_blank" rel="noopener">adapter</a>)基于这些属性数据，来实现日志记录、监控指标采集展示、配额管理、ACL检查等功能。</p>
+</li>
+<li><p>Pilot<br>翻译过来是领航员，Pliot对Envoy的生命周期进行管理，同时提供了智能路由（如A/B测试、金丝雀部署）、流量管理（超时、重试、熔断）功能。Pliot接收用户指定的高级路由规则配置，转换成Envoy的配置，使这些规则生效。</p>
+</li>
+<li><p>Istio-Auth<br>服务间认证和终端用户认证功能。</p>
+</li>
+</ul>
+<h2 id="源码结构介绍"><a href="#源码结构介绍" class="headerlink" title="源码结构介绍"></a>源码结构介绍</h2><p>Istio源码托管于<a href="https://github.com/istio/istio" target="_blank" rel="noopener">Github</a>，项目使用Go开发。</p>
+<p>以<a href="https://github.com/istio/istio/tree/35e2b9042fe3d4ebe68772311aa1ebe46b66a1be" target="_blank" rel="noopener">35e2b904</a>为例，istio代码结构如下所示：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">.</span><br><span class="line">├── addons                                   </span><br><span class="line">├── bin</span><br><span class="line">├── broker</span><br><span class="line">├── docker</span><br><span class="line">├── galley</span><br><span class="line">├── install</span><br><span class="line">├── istioctl</span><br><span class="line">├── mixer</span><br><span class="line">├── pilot</span><br><span class="line">├── pkg</span><br><span class="line">├── prow</span><br><span class="line">├── release</span><br><span class="line">├── samples</span><br><span class="line">├── security</span><br><span class="line">├── tests</span><br><span class="line">├── tools</span><br><span class="line">├── vendor</span><br><span class="line">├── codecov.requirement</span><br><span class="line">├── codecov.skip</span><br><span class="line">├── CONTRIBUTING.md</span><br><span class="line">├── downloadIstio.sh</span><br><span class="line">├── Gopkg.lock</span><br><span class="line">├── Gopkg.toml</span><br><span class="line">├── istio.deps</span><br><span class="line">├── istio.VERSION</span><br><span class="line">├── istio.yaml</span><br><span class="line">├── LICENSE</span><br><span class="line">├── lintconfig_base.json</span><br><span class="line">├── Makefile</span><br><span class="line">├── OWNERS</span><br><span class="line">└── README.md</span><br></pre></td></tr></table></figure></p>
+<p>部分包\文件\文件夹功能列表如下：</p>
+<table>
+<thead>
+<tr>
+<th>Package/Directory/File</th>
+<th>Introduction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>addons</td>
+<td>一些插件，比如展示metrics的grafana和绘制服务调用图的servicegraph</td>
+</tr>
+<tr>
+<td>bin</td>
+<td>存放初始化依赖、编译、插件证书检查、代码生成的脚本</td>
+</tr>
+<tr>
+<td>broker</td>
+<td>Istio对Open Service Broker的一种实现，该API使得外部服务能自动访问Istio服务。broker目前还处于研发阶段。</td>
+</tr>
+<tr>
+<td>galley</td>
+<td>提供了Istio的配置管理功能，目前还处于研发阶段。</td>
+</tr>
+<tr>
+<td>install</td>
+<td>生成各环境（ansible、consul、ereka、kubernetes等）安装istio时需要yaml配置清单。</td>
+</tr>
+<tr>
+<td>istioctl</td>
+<td>istio终端控制工具（类似kubectl之于kubernetes），用户通过istioctl来修改istio运行时配置，执行服务治理策略。</td>
+</tr>
+<tr>
+<td>mixer</td>
+<td>“混音器”，参与到tracffic处理流程。通过对envoy上报的attributes进行处理，结合内部的adapters实现日志记录、监控指标采集展示、配额管理、ACL检查等功能。</td>
+</tr>
+<tr>
+<td>pilot</td>
+<td>“领航员”，pliot对Envoy的生命周期进行管理，同时提供了智能路由（如A/B测试、金丝雀部署）、流量管理（超时、重试、熔断）功能。</td>
+</tr>
+<tr>
+<td>pkg</td>
+<td>顶级公共包，包含istio版本处理、tracing、日志记录、缓存管理等。</td>
+</tr>
+<tr>
+<td>release</td>
+<td>包含Istio在各平台上进行编译的脚本。</td>
+</tr>
+<tr>
+<td>samples</td>
+<td>Istio提供的微服务样例，比如bookinfo。</td>
+</tr>
+<tr>
+<td>security</td>
+<td>Istio用户身份验证、服务间认证。</td>
+</tr>
+<tr>
+<td>tests</td>
+<td>测试用例、脚本等。</td>
+</tr>
+<tr>
+<td>vendor</td>
+<td>dep生成的第三方依赖。</td>
+</tr>
+<tr>
+<td>Gopkg.*</td>
+<td>dep需要version config和version lock文件。</td>
+</tr>
+<tr>
+<td>Makefile</td>
+<td>Istio Makefile，编译docker镜像时会引用tools/istio-docker.mk这个Makefile。</td>
+</tr>
+</tbody>
+</table>
+<h1 id="开发环境搭建"><a href="#开发环境搭建" class="headerlink" title="开发环境搭建"></a>开发环境搭建</h1><h2 id="安装docker"><a href="#安装docker" class="headerlink" title="安装docker"></a>安装docker</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 参考 https://docs.docker.com/install/linux/docker-ce/ubuntu/#install-docker-ce-1</span></span><br></pre></td></tr></table></figure>
+<h3 id="配置docker代理-可选"><a href="#配置docker代理-可选" class="headerlink" title="配置docker代理[可选]"></a>配置docker代理[可选]</h3><p>新建/etc/systemd/system/docker.service.d/http-proxy.conf，添加如下配置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[Service]</span><br><span class="line">Environment=&quot;HTTP_PROXY=http://&lt;your_proxy&gt;/&quot; &quot;HTTPS_PROXY=http://&lt;your_proxy&gt;/&quot; &quot;NO_PROXY=192.168.0.0/16,127.0.0.0/8&quot; # your_proxy替换成你自己的代理</span><br></pre></td></tr></table></figure>
+<h2 id="安装virtualbox"><a href="#安装virtualbox" class="headerlink" title="安装virtualbox"></a>安装virtualbox</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># virtualbox需要装最新的5.2.10, https://www.virtualbox.org/wiki/Linux_Downloads</span></span><br><span class="line"><span class="comment"># Mac OS</span></span><br><span class="line">wget https://download.virtualbox.org/virtualbox/5.2.10/VirtualBox-5.2.10-122088-OSX.dmg</span><br><span class="line"><span class="comment"># ubuntu AMD64</span></span><br><span class="line">wget https://download.virtualbox.org/virtualbox/5.2.10/virtualbox-5.2_5.2.10-122088~Ubuntu~xenial_amd64.deb &amp;&amp; sudo apt install ./virtualbox-5.2_5.2.10-122088~Ubuntu~xenial_amd64.deb</span><br><span class="line"><span class="comment"># centos6 AMD64</span></span><br><span class="line">wget https://download.virtualbox.org/virtualbox/5.2.10/VirtualBox-5.2-5.2.10_122088_el6-1.x86_64.rpm &amp;&amp; yum install ./VirtualBox-5.2-5.2.10_122088_el7-1.x86_64.rpm</span><br><span class="line"><span class="comment"># centos7 AMD64</span></span><br><span class="line">wget https://download.virtualbox.org/virtualbox/5.2.10/VirtualBox-5.2-5.2.10_122088_el7-1.x86_64.rpm &amp;&amp; yum install ./VirtualBox-5.2-5.2.10_122088_el7-1.x86_64.rpm</span><br></pre></td></tr></table></figure>
+<h2 id="安装k8s集群"><a href="#安装k8s集群" class="headerlink" title="安装k8s集群"></a>安装k8s集群</h2><h3 id="使用vagrant安装k8s集群-建议"><a href="#使用vagrant安装k8s集群-建议" class="headerlink" title="使用vagrant安装k8s集群[建议]"></a>使用vagrant安装k8s集群[建议]</h3><p>参考jimmysong的vagrant教程<a href="https://github.com/rootsongjc/kubernetes-vagrant-centos-cluster" target="_blank" rel="noopener">kubernetes-vagrant-centos-cluster</a>，其中节点个数根据自己机器配置酌情更改(参考<a href="https://github.com/sevenNt/kubernetes-vagrant-centos-cluster" target="_blank" rel="noopener">kubernetes-vagrant-centos-cluster</a>)。</p>
+<h3 id="使用minikube安装k8s集群-可选"><a href="#使用minikube安装k8s集群-可选" class="headerlink" title="使用minikube安装k8s集群[可选]"></a>使用<a href="https://github.com/kubernetes/minikube" target="_blank" rel="noopener">minikube</a>安装k8s集群[可选]</h3><ul>
+<li>安装minikube</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 &amp;&amp; chmod +x minikube &amp;&amp; sudo mv minikube /usr/<span class="built_in">local</span>/bin/ <span class="comment"># 下载minikube</span></span><br><span class="line">curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl &amp;&amp; chmod +x kubectl &amp;&amp; sudo mv kubectl /usr/<span class="built_in">local</span>/bin/ <span class="comment"># 下载kubectl</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>启动k8s</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 注minikube可以不使用virtualbox启动k8s，不过需要dockerc处于桥接模式，否则可能导致网络连接不通，配置过程请自行搜索</span></span><br><span class="line">minikube start \</span><br><span class="line">--extra-config=controller-manager.ClusterSigningCertFile=<span class="string">"/var/lib/localkube/certs/ca.crt"</span> \</span><br><span class="line">--extra-config=controller-manager.ClusterSigningKeyFile=<span class="string">"/var/lib/localkube/certs/ca.key"</span> \</span><br><span class="line">--extra-config=apiserver.Admission.PluginNames=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota \</span><br><span class="line">--kubernetes-version=v1.9.4 \</span><br><span class="line">--logtostderr</span><br></pre></td></tr></table></figure>
+<h2 id="配置Istio-repo"><a href="#配置Istio-repo" class="headerlink" title="配置Istio repo"></a>配置Istio repo</h2><ul>
+<li>配置github并拉取代码</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 配置github代理</span></span><br><span class="line">git config --global http.https://github.com.proxy http://proxy:1080</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在github上fork Istio，并clone到自己公共的$GOPATH/src/istio.io/下</span></span><br><span class="line">mkdir -p <span class="variable">$GOPATH</span>/src/istio.io</span><br><span class="line"><span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/istio.io</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/<span class="variable">$YOU</span>/istio</span><br><span class="line"><span class="built_in">cd</span> istio</span><br><span class="line">git remote add upstream <span class="string">'https://github.com/istio/istio'</span></span><br><span class="line">git config --global --add http.followRedirects 1</span><br></pre></td></tr></table></figure>
+<ul>
+<li>配置环境变量</li>
+</ul>
+<p>未避免污染全局环境变量，强烈建议安装<a href="https://github.com/kennethreitz/autoenv" target="_blank" rel="noopener">autoenv</a>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/istio.io/istio</span><br></pre></td></tr></table></figure>
+<p>在istio根目录下新增.env文件，配置如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> GOPATH=<span class="variable">$YOUR_GOPATH</span> <span class="comment"># $YOUR_GOPATH为你的GOPATH路径</span></span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$GOPATH</span>/bin</span><br><span class="line"><span class="built_in">export</span> ISTIO=<span class="variable">$GOPATH</span>/src/istio.io <span class="comment"># eg. ~/go/src/istio.io</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Please change HUB to the desired HUB for custom docker container</span></span><br><span class="line"><span class="comment"># builds.</span></span><br><span class="line"><span class="built_in">export</span> HUB=<span class="string">"docker.io/<span class="variable">$USER</span>"</span> <span class="comment"># $USER为你的dockerhub账号</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The Istio Docker build system will build images with a tag composed of</span></span><br><span class="line"><span class="comment"># $USER and timestamp. The codebase doesn't consistently use the same timestamp</span></span><br><span class="line"><span class="comment"># tag. To simplify development the development process when later using</span></span><br><span class="line"><span class="comment"># updateVersion.sh you may find it helpful to set TAG to something consistent</span></span><br><span class="line"><span class="comment"># such as $USER.</span></span><br><span class="line"><span class="built_in">export</span> TAG=<span class="variable">$USER</span> <span class="comment"># TAG为你编译Istio各组建后打包镜像的tag，建议Mac/ubuntu当前账号</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># If your github username is not the same as your local user name (saved in the</span></span><br><span class="line"><span class="comment"># shell variable $USER), then replace "$USER" below with your github username</span></span><br><span class="line"><span class="built_in">export</span> GITHUB_USER=<span class="variable">$USER</span> <span class="comment"># GITHUB_USER为你的github账号</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Specify which Kube config you'll use for testing. This depends on whether</span></span><br><span class="line"><span class="comment"># you're using Minikube or your own Kubernetes cluster for local testing</span></span><br><span class="line"><span class="comment"># For a GKE cluster:</span></span><br><span class="line"><span class="built_in">export</span> KUBECONFIG=<span class="variable">$&#123;HOME&#125;</span>/.kube/config</span><br><span class="line"><span class="comment"># Alternatively, for Minikube:</span></span><br><span class="line"><span class="comment"># export KUBECONFIG=$&#123;GOPATH&#125;/src/istio.io/istio/.circleci/config</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">export</span> ISTIO_DOCKER_HUB=<span class="string">"docker.io/<span class="variable">$USER</span>"</span> <span class="comment"># make build时使用此变量</span></span><br><span class="line"><span class="built_in">export</span> ISTIO_VERSION=<span class="variable">$USER</span>                <span class="comment"># make build时使用此变量</span></span><br></pre></td></tr></table></figure>
+<p>使当前.env生效：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> .</span><br></pre></td></tr></table></figure>
+<h2 id="Istio编译组件并测试"><a href="#Istio编译组件并测试" class="headerlink" title="Istio编译组件并测试"></a>Istio编译组件并测试</h2><ul>
+<li>编译镜像</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># make init # 初始化，检查目录结构、Go版本号、初始化环境变量、检查vendor等</span></span><br><span class="line">make docker <span class="comment"># 对各组件（istioctl、mixer、pilot、istio-auth等）进行二进制包编译、测试、镜像编译</span></span><br><span class="line">make push <span class="comment"># 推送镜像到dockerhub</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 其他指令</span></span><br><span class="line">make pilot  docker.pilot <span class="comment"># 编译pilot组件和镜像</span></span><br><span class="line">make app  docker.app <span class="comment"># 编译app组件和镜像</span></span><br><span class="line">make proxy  docker.proxy <span class="comment"># 编译proxy组件和镜像</span></span><br><span class="line">make proxy_init  docker.proxy_init <span class="comment"># 编译proxy_init组件和镜像</span></span><br><span class="line">make proxy_debug  docker.proxy_debug <span class="comment"># 编译proxy_debug组件和镜像</span></span><br><span class="line">make sidecar_injector  docker.sidecar_injector <span class="comment"># 编译sidecar_injector组件和镜像</span></span><br><span class="line">make proxyv2  docker.proxyv2 <span class="comment"># 编译proxyv2组件和镜像</span></span><br><span class="line"></span><br><span class="line">make push.docker.pilot <span class="comment"># 推送pilot镜像到dockerhub，其他组件类似</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>其他脚本</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> <span class="variable">$GOPATH</span>/src/istio.io/istio</span><br><span class="line"></span><br><span class="line">./bin/get_workspace_status <span class="comment"># 查看当前工作目录状态，包括环境变量等</span></span><br><span class="line">install/updateVersion.sh -a <span class="variable">$&#123;HUB&#125;</span>,<span class="variable">$&#123;TAG&#125;</span> <span class="comment"># 使用当前环境变量生成Istio清单</span></span><br><span class="line">samples/bookinfo/build_push_update_images.sh <span class="comment"># 使用当前环境变量编译并推送bookinfo镜像</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>测试镜像</li>
+</ul>
+<p>参考<a href="https://istio.io/docs/setup/kubernetes/quick-start.html" target="_blank" rel="noopener">Istio doc</a></p>
+<hr>
+<p><strong>作者</strong></p>
+<p>郑伟，小米信息技术部基础架构组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP体系、内网OA体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#istio" >
+    <span class="tag-code">istio</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+    
+      <a class="nav-right" href="/2018/05/03/istio-src-2/">
+        
+          Istio 源码解析系列(二)-服务治理配置生效流程解析
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#概述"><span class="toc-nav-text">概述</span></a></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#整体架构"><span class="toc-nav-text">整体架构</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#源码结构介绍"><span class="toc-nav-text">源码结构介绍</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#开发环境搭建"><span class="toc-nav-text">开发环境搭建</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#安装docker"><span class="toc-nav-text">安装docker</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#配置docker代理-可选"><span class="toc-nav-text">配置docker代理[可选]</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#安装virtualbox"><span class="toc-nav-text">安装virtualbox</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#安装k8s集群"><span class="toc-nav-text">安装k8s集群</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#使用vagrant安装k8s集群-建议"><span class="toc-nav-text">使用vagrant安装k8s集群[建议]</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#使用minikube安装k8s集群-可选"><span class="toc-nav-text">使用minikube安装k8s集群[可选]</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#配置Istio-repo"><span class="toc-nav-text">配置Istio repo</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Istio编译组件并测试"><span class="toc-nav-text">Istio编译组件并测试</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2018/05/03/istio-src-1/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "Istio 源码解析系列(一)-istio源码架构介绍及开发环境搭建",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

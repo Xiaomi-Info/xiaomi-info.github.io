@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      统计建模初探 —— Analysis of Correlation | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>统计建模初探 —— Analysis of Correlation</h2>
+  <p class="post-date">2020-05-24</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="统计建模初探-——-Analysis-of-Correlation"><a href="#统计建模初探-——-Analysis-of-Correlation" class="headerlink" title="统计建模初探 —— Analysis of Correlation"></a>统计建模初探 —— Analysis of Correlation</h1><p><strong>[作者简介]</strong> 焦家耀，小米信息技术部售后组</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>随着现在很多统计分析工具的进化，尤其是 <code>Python</code> 相关的成熟的统计分析包的诞生，让相关统计分析变得简单化。但同时也带来很多滥用的行为，比如在处理回归分析问题，就粗暴的将一个或者多个自变量，直接和因变量做回归分析。这样带来了两方面问题，一是对于结果的解释性变差，二是大多时间是在做无用功，甚至得出错误的结论，尤其是当自变量和因变量之间没有相关性或者只是弱相关性时。</p>
+<p>本文将基于上述背景给出相关性分析的定义，相关性分析的常用方法以及部分相关证明，以及随机变量的数字特征与相关性之间的关系，最后会给出相关性的适用范围。</p>
+<h2 id="关键字"><a href="#关键字" class="headerlink" title="关键字"></a>关键字</h2><p><strong>相关性分析；协方差；相关系数；Pearson 系数；</strong></p>
+<h2 id="相关性分析定义"><a href="#相关性分析定义" class="headerlink" title="相关性分析定义"></a>相关性分析定义</h2><blockquote>
+<p>相关分析是研究两个或两个以上处于同等地位的随机变量间的相关关系的统计分析方法。</p>
+</blockquote>
+<h3 id="两种误解"><a href="#两种误解" class="headerlink" title="两种误解"></a>两种误解</h3><blockquote>
+<p>相关性 = 因果性 ？</p>
+<blockquote>
+<p>相关性是指两个或者多个随机变量之间存在某种关联，因果性是指输入变量对输出变量会造成结 果，前者是原因后者是结果。</p>
+</blockquote>
+</blockquote>
+<p>举个例子：一元方程 $y_t$=a$x_{t-1}$+b，可以说明随机变量 $x$ 与 $y$ 之间存在相关，当随机变量$x$ 与 $y$是平稳时间序列，而且$x$ 与 $y$通过显著性检验，可以说存在因果，由此也可见因果性对证据等级的要求是极为苛刻的。</p>
+<blockquote>
+<p>相关性 = 一定存在映射关系 ？</p>
+<blockquote>
+<p>日常对于相关性存在一种误解，认为相关性就是随机变量间一定存在某种映射。比如计算自由落体运动高度的公式：$h = \frac{1}2gt^2$，给定每一个时间 t 都能得到对应的相对位移 h，于是认为时间 t 和相对位移 h 之间存在相关性。</p>
+</blockquote>
+</blockquote>
+<p>首先可以肯定两者是具有相关性，存在映射关系的一定具有相关性，而且是强相关，下文的相关性分析方法之一的一元回归分析就是一个证明。但是生活中的实际问题并不能一概而论，比如天气温度与冰淇淋销量之间是否存在相关，经验主义告诉我们这个很大可能存在某种相关性，但是天气温度与手机销量是否存在相关性，这个时候就需要定量分析了。</p>
+<p>在实际应用场景中很多变量之间不存在映射或者存在一些非线性的映射关系，这些凭借经验主义是很难发现的，所以要定量的分析变量之间的关系是，才能给出天气温度与手机销量是否相关，促销与销量之间是否相关等问题的科学分析。</p>
+<h2 id="相关性分析方法"><a href="#相关性分析方法" class="headerlink" title="相关性分析方法"></a>相关性分析方法</h2><p>常见的相关性分析方法：</p>
+<ul>
+<li>基于图表的肉眼观测</li>
+<li>协方差｜协方差矩阵</li>
+<li>相关系数（Pearson 系数）</li>
+<li>一元回归｜多元回归</li>
+</ul>
+<h3 id="基于图表的肉眼观测"><a href="#基于图表的肉眼观测" class="headerlink" title="基于图表的肉眼观测"></a>基于图表的肉眼观测</h3><blockquote>
+<p>基于数据绘制相关的散点图，折线图等，凭借肉眼和经验来观测是够具有相关性。这种经验主义的做法，经常会让一些不易观察但实际具有相关的关系被忽视，优劣势十分明显。</p>
+</blockquote>
+<h3 id="协方差｜协方差矩阵"><a href="#协方差｜协方差矩阵" class="headerlink" title="协方差｜协方差矩阵"></a>协方差｜协方差矩阵</h3><h4 id="协方差定义"><a href="#协方差定义" class="headerlink" title="协方差定义"></a>协方差定义</h4><blockquote>
+<p>设$X$, $Y$是两个随机变量，则有</p>
+</blockquote>
+<p>$$ Var(X+Y) = Var(X) + Var(Y) + 2E[(X-E(X))(Y-E(Y))]$$</p>
+<blockquote>
+<p>若$X$, $Y$相互独立，则 $E{[X-E(X)][Y-E(Y)]} = 0$。根据方差的性质，我们可以知道，当 $E{[X-E(X)][Y-E(Y)]} \neq 0$时，则$X$, $Y$存在一定关系。所以称$E{[X-E(X)][Y-E(Y)]}$为随机变量$X$, $Y$的 <code>协方差</code> ，记为$cov(X, Y)$。    </p>
+</blockquote>
+<p>$$ cov(X, Y) = E{[X-E(X)][Y-E(Y)]}$$</p>
+<h4 id="协方差矩阵定义"><a href="#协方差矩阵定义" class="headerlink" title="协方差矩阵定义"></a>协方差矩阵定义</h4><blockquote>
+<p>设$n$维随机变量$(X_1, X_2, …, X_n)$是二阶混合中心矩</p>
+</blockquote>
+<p>$$ c_ij = cov(X_i, X_j) = E{[X_i-E(X_i)][X_j-E(X_j)]} \quad i, j = 1, 2, …, n$$</p>
+<blockquote>
+<p>都存在，则称矩阵  </p>
+</blockquote>
+<p>$$C = \begin{bmatrix}c_{11} &amp; c_{12} &amp; … &amp; c_{1n} \\ c_{21} &amp; c_{22} &amp; … &amp; c_{2n} \\ \vdots &amp; \vdots &amp; \vdots &amp; \vdots \\ c_{n1} &amp; c_{n2} &amp; … &amp; c_{nn}\end{bmatrix}$$</p>
+<blockquote>
+<p>为$n$维随机变量$(X_1, X_2, …, X_n)$的协方差矩阵。由于$c_{ij} = c_{ji}$，因此协方差矩阵还是一个对称矩阵。</p>
+</blockquote>
+<h4 id="协方差｜协方差矩阵应用"><a href="#协方差｜协方差矩阵应用" class="headerlink" title="协方差｜协方差矩阵应用"></a>协方差｜协方差矩阵应用</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="comment"># 计算期望</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mean</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> sum(x)/len(x)</span><br><span class="line"><span class="comment"># 计算每一项数据与均值的差</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">de_mean</span><span class="params">(x)</span>:</span></span><br><span class="line">    x_bar = mean(x)</span><br><span class="line">    <span class="keyword">return</span> [x_i - x_bar <span class="keyword">for</span> x_i <span class="keyword">in</span> x]</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">dot</span><span class="params">(v, w)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> sum(v_i * w_i <span class="keyword">for</span> v_i, w_i <span class="keyword">in</span> zip(v, w))</span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">sum_of_squares</span><span class="params">(v)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> dot(v, v)</span><br><span class="line"><span class="comment"># 方差</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">variance</span><span class="params">(x)</span>:</span></span><br><span class="line">    n = len(x)</span><br><span class="line">    deviations = de_mean(x)</span><br><span class="line">    <span class="keyword">return</span> sum_of_squares(deviations) / (n - <span class="number">1</span>)</span><br><span class="line"><span class="comment"># 标准差</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">standard_deviation</span><span class="params">(x)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> math.sqrt(variance(x))</span><br><span class="line"><span class="comment"># 协方差</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">covariance</span><span class="params">(x, y)</span>:</span></span><br><span class="line">    n = len(x)</span><br><span class="line">    <span class="keyword">return</span> dot(de_mean(x), de_mean(y)) / (n - <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 随机生成数据</span></span><br><span class="line">a = [random.randint(<span class="number">0</span>, <span class="number">100</span>) <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">25</span>)]</span><br><span class="line">b = [random.randint(<span class="number">0</span>, <span class="number">100</span>) <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">25</span>)]</span><br><span class="line">print(a)</span><br><span class="line">print(b)</span><br><span class="line">print(covariance(a, b))</span><br><span class="line"><span class="comment"># 构造矩阵</span></span><br><span class="line">ab = np.array([a, b])</span><br><span class="line"><span class="comment"># 计算协方差矩阵</span></span><br><span class="line">print(np.cov(ab))</span><br></pre></td></tr></table></figure>
+<img src="/2020/05/24/analysis-of-correlation/covariance.png">
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><blockquote>
+<p>协方差是用来衡量两个随机变量之间的总体误差。若两个变量的变化趋势一致，协方差是正值，两变量是正相关；若两个变量变化趋势相反，协方差是负值，两变量是负相关；若两个变量相互独立，那么协方差是 0，两变量之间不相关。</p>
+</blockquote>
+<p>换句话来说，协方差｜协方差矩阵给了我们一个定量分析随机变量之间是否存在相关性，以及是正相关还是负相关的方法，但是无法衡量随机变量之间的相关性强弱。</p>
+<h3 id="相关系数"><a href="#相关系数" class="headerlink" title="相关系数"></a>相关系数</h3><h4 id="相关系数（Pearson-系数）定义"><a href="#相关系数（Pearson-系数）定义" class="headerlink" title="相关系数（Pearson 系数）定义"></a>相关系数（Pearson 系数）定义</h4><blockquote>
+<p>设随机变量$X$, $Y$的期望，方差都存在，则</p>
+</blockquote>
+<p>$$\rho_{XY}=\frac{cov(X, Y)}{\sqrt{Var(X)Var(Y)}}$$</p>
+<blockquote>
+<p>为随机变量$X$, $Y$的相关系数，$p_{XY}$是一个无量纲的量。</p>
+</blockquote>
+<h4 id="相关系数的性质"><a href="#相关系数的性质" class="headerlink" title="相关系数的性质"></a>相关系数的性质</h4><ul>
+<li>$|p_{XY}|\leq1$</li>
+<li><p>$|p_{XY}|=1$的充要条件是存在常数$a$, $b$，使得$P\{Y=aX+b\} = 1$</p>
+<blockquote>
+<p>性质 1 可知，相关系数定量的描述了随机变量$X$, $Y$的相关程度，即$|p_{XY}|$越大，相关程度越大，$|p_{XY}|=0$相关程度最低。<br>性质 2 可知，$X$, $Y$完全相关是指在概率为 1 的情况下存在线性关系，于是$|p_{XY}|$也可以表示$X$, $Y$之间的线性关系紧密程度的量，当$|p_{XY}|$较大的时候，通常可以说$X$, $Y$之间线性相关程度较好。</p>
+</blockquote>
+</li>
+</ul>
+<h4 id="相关系数应用"><a href="#相关系数应用" class="headerlink" title="相关系数应用"></a>相关系数应用</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 相关系数</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">correlation</span><span class="params">(x, y)</span>:</span></span><br><span class="line">    stdev_x = standard_deviation(x)</span><br><span class="line">    stdev_y = standard_deviation(y)</span><br><span class="line">    <span class="keyword">if</span> stdev_x &gt; <span class="number">0</span> <span class="keyword">and</span> stdev_y &gt; <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">return</span> covariance(x, y) / stdev_x / stdev_y</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line">a = [random.randint(<span class="number">0</span>, <span class="number">100</span>) <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">20</span>)]</span><br><span class="line">b = [random.randint(<span class="number">0</span>, <span class="number">100</span>) <span class="keyword">for</span> j <span class="keyword">in</span> range(<span class="number">20</span>)]</span><br><span class="line">print(a)</span><br><span class="line">print(b)</span><br><span class="line">print(correlation(a, b))</span><br><span class="line"><span class="comment"># 构造矩阵</span></span><br><span class="line">ab = np.array([a, b])</span><br><span class="line"><span class="comment"># 计算相关系数</span></span><br><span class="line">print(np.corrcoef(ab))</span><br></pre></td></tr></table></figure>
+<img src="/2020/05/24/analysis-of-correlation/correlation.png">
+<h4 id="总结-1"><a href="#总结-1" class="headerlink" title="总结"></a>总结</h4><blockquote>
+<p>相关系数不仅刻画了正负相关，还用量纲刻画了随机变量之间相关性强弱和线性相关性强弱，如上图所示，相关系数矩阵是中$i=j$的时候，$|p_{XY}|=1$也从侧面说明了性质 2 的正确性。<br>Pearson 系数在使用中经常会和斯皮尔曼相关性系数（Spearman 系数），肯德尔相关性系数（Kendall 系数）一起出现，但是三者侧重点各不相同，感兴趣的同学可以自己搜索了解一下。笔者推荐一个相关资料 <a href="https://www.cnblogs.com/yjd_hycf_space/p/11537153.html" target="_blank" rel="noopener">三大系数</a></p>
+</blockquote>
+<h3 id="一元回归｜多元回归"><a href="#一元回归｜多元回归" class="headerlink" title="一元回归｜多元回归"></a>一元回归｜多元回归</h3><h4 id="一元回归的拟合优度"><a href="#一元回归的拟合优度" class="headerlink" title="一元回归的拟合优度"></a>一元回归的拟合优度</h4><blockquote>
+<p>一元回归以及多元回归的相关推导，先留个坑，会在后续的专项回归分析中详细推导，本次重点关注相关性分析。</p>
+</blockquote>
+<blockquote>
+<p>一元回归的拟合优度一般都是通过$R^2$来评估的，</p>
+</blockquote>
+<p>$$R^2=1-\frac{\sum_i{(\hat{y}_i - y_i)^2}}{\sum_i{(\overline{y}_i - y_i)^2}} = 1 - \frac{MSE}{Var}$$</p>
+<blockquote>
+<p>其中$R^2$越大越好，当$R^2=1$的时候，是完美拟合。</p>
+</blockquote>
+<h4 id="多元回归的拟合优度"><a href="#多元回归的拟合优度" class="headerlink" title="多元回归的拟合优度"></a>多元回归的拟合优度</h4><blockquote>
+<p>多元回归的拟合优度以及相关指标的影响权重问题是基于$F$检验和$p-value$检验做，这个涉及到了多元回归的相关推导，我们先按下不表。</p>
+</blockquote>
+<h3 id="最终总结"><a href="#最终总结" class="headerlink" title="最终总结"></a>最终总结</h3><blockquote>
+<p>相关性分析是验证随机变量之间是否存在某种相关性，这种相关性可以是线性也可以是非线性，相关性分析给出了定量的度量，可以有效的解决盲目将数据丢入模型中带来的不可解释性。本文前只是介绍了几种常见的相关性分析方法，像$u$检验，$t$检验等假设检验，还有$F$检验，$p-value$检验等会在后续整理完成后继续更新。</p>
+</blockquote>
+<h2 id="下集预告"><a href="#下集预告" class="headerlink" title="下集预告"></a>下集预告</h2><p>Regression Analysis （回归分析）</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>焦家耀，小米信息技术部售后组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#相关性分析" >
+    <span class="tag-code">相关性分析</span>
+  </a>
+
+  <a href="/tags#协方差" >
+    <span class="tag-code">协方差</span>
+  </a>
+
+  <a href="/tags#相关系数" >
+    <span class="tag-code">相关系数</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/04/14/fe-microfrontends-practice/">
+        <span class="nav-arrow">← </span>
+        
+          微前端在小米 CRM 系统的实践
+        
+      </a>
+    
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#统计建模初探-——-Analysis-of-Correlation"><span class="toc-nav-text">统计建模初探 —— Analysis of Correlation</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#关键字"><span class="toc-nav-text">关键字</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#相关性分析定义"><span class="toc-nav-text">相关性分析定义</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#两种误解"><span class="toc-nav-text">两种误解</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#相关性分析方法"><span class="toc-nav-text">相关性分析方法</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#基于图表的肉眼观测"><span class="toc-nav-text">基于图表的肉眼观测</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#协方差｜协方差矩阵"><span class="toc-nav-text">协方差｜协方差矩阵</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#协方差定义"><span class="toc-nav-text">协方差定义</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#协方差矩阵定义"><span class="toc-nav-text">协方差矩阵定义</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#协方差｜协方差矩阵应用"><span class="toc-nav-text">协方差｜协方差矩阵应用</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#相关系数"><span class="toc-nav-text">相关系数</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#相关系数（Pearson-系数）定义"><span class="toc-nav-text">相关系数（Pearson 系数）定义</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#相关系数的性质"><span class="toc-nav-text">相关系数的性质</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#相关系数应用"><span class="toc-nav-text">相关系数应用</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#总结-1"><span class="toc-nav-text">总结</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#一元回归｜多元回归"><span class="toc-nav-text">一元回归｜多元回归</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#一元回归的拟合优度"><span class="toc-nav-text">一元回归的拟合优度</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#多元回归的拟合优度"><span class="toc-nav-text">多元回归的拟合优度</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#最终总结"><span class="toc-nav-text">最终总结</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#下集预告"><span class="toc-nav-text">下集预告</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/05/24/analysis-of-correlation/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "统计建模初探 —— Analysis of Correlation",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

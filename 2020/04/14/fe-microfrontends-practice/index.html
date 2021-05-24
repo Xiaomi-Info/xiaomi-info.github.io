@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      微前端在小米 CRM 系统的实践 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>微前端在小米 CRM 系统的实践</h2>
+  <p class="post-date">2020-04-14</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><img src="/2020/04/14/fe-microfrontends-practice/2020-04-01_15-04-43.png">
+<p><strong>[作者简介]</strong> 李帅帅，信息技术部平台部前端组，目前主要负责中台业务前端架构及小程序开发。<br><strong>[文章原地址]</strong> <a href="https://www.lishuaishuai.com/architecture/1344.html" target="_blank" rel="noopener">https://www.lishuaishuai.com/architecture/1344.html</a></p>
+<h2 id="一、前言"><a href="#一、前言" class="headerlink" title="一、前言"></a>一、前言</h2><p>大型组织的组织结构、软件架构在不断地发生变化。移动优先（Mobile First）、App 中台（One App）、中台战略等，各种口号在不断的提出、修改和演进。同时，业务也在不断地发展，导致应用不断膨胀，进一步映射到软件架构上。</p>
+<p>现有 Web 应用（SPA）不能很好的拓展和部署，随着时间的推移，各个项目变得越来越臃肿，web 应用变得越来越难以维护。</p>
+<p>微前端是一种类似于微服务的架构，它将微服务的理念应用于浏览器端，即将 Web 应用由单一的单体应用转变为<strong>多个小型前端应用聚合为一的应用</strong>。各个前端应用还可以<strong>独立运行、独立开发、独立部署</strong>。</p>
+<blockquote>
+<p>Techniques, strategies and recipes for building a modern web app with multiple teams that can ship features independently. — Micro Frontends</p>
+</blockquote>
+<p>关键词：解耦、聚合、技术栈无关、独立运行、独立开发、独立部署、易拓展</p>
+<h2 id="二、实施微前端的六种方式"><a href="#二、实施微前端的六种方式" class="headerlink" title="二、实施微前端的六种方式"></a>二、实施微前端的六种方式</h2><p>《前端架构从入门到微前端》一书中，将微前端的实施分为六种：</p>
+<h3 id="2-1-路由分发"><a href="#2-1-路由分发" class="headerlink" title="2.1 路由分发"></a>2.1 路由分发</h3><p>路由分发式微前端，即通过路由将不同的业务分发到不同的、独立前端应用上。其通常可以通过 HTTP 服务器的反向代理来实现，又或者是应用框架自带的路由来解决。如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-30_19-08-06.png">
+<h3 id="2-2-前端微服务化"><a href="#2-2-前端微服务化" class="headerlink" title="2.2 前端微服务化"></a>2.2 前端微服务化</h3><p>前端微服务化，是微服务架构在前端的实施，每个前端应用都是完全独立（技术栈、开发、部署、构建独立）、自主运行的，最后通过模块化的方式组合出完成的应用。</p>
+<p>采用这种方式意味着，一个页面上可以同时存在两个以上的前端应用在运行。如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-30_19-31-27.png">
+<p>目前主流的框架有 <a href="https://single-spa.js.org/" target="_blank" rel="noopener">Single-SPA</a>、<a href="https://qiankun.umijs.org/" target="_blank" rel="noopener">qiankun</a>、<a href="https://github.com/phodal/mooa" target="_blank" rel="noopener">Mooa</a>，后两者都是基于 <code>Single-SPA</code> 的封装。</p>
+<h3 id="2-3-微应用"><a href="#2-3-微应用" class="headerlink" title="2.3 微应用"></a>2.3 微应用</h3><p>微应用化是指在开发时应用都是以单一、微小应用的形式存在的，而在运行时，则是通过构建系统合并这些应用，并组合成一个新的应用。</p>
+<p>微应用化大都是以软件工程的方式来完成前端应用的聚合，因此又可以称之为<strong>组合式集成</strong>。</p>
+<p>微应用化只能使用唯一的一种前端框架。</p>
+<p>如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-30_21-01-15.png">
+<h3 id="2-4-微件化"><a href="#2-4-微件化" class="headerlink" title="2.4 微件化"></a>2.4 微件化</h3><p>微件化（Widget）是一段可以直接嵌入应用上运行的代码，它由开发人员预先编译好，在加载时不需要再做任何修改或编译。微前端下的微件化是指，每个业务团第编写自己的业务代码，并将编译好的代码部署到指定的服务器上，运行时只需要加载指定的代码即可。</p>
+<p>如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-30_21-56-36.png">
+<h3 id="2-5-iframe"><a href="#2-5-iframe" class="headerlink" title="2.5 iframe"></a>2.5 iframe</h3><p>iFrame 作为一个非常古老的，人人都觉得普通的技术，却一直很管用。</p>
+<blockquote>
+<p>HTML 内联框架元素 <code>&lt;iframe&gt;</code> 表示嵌套的正在浏览的上下文，能有效地将另一个 HTML 页面嵌入到当前页面中。</p>
+</blockquote>
+<p>iframe 可以创建一个全新的独立的宿主环境，这意味着我们的前端应用之间可以相互独立运行。采用 iframe 有几个重要的前提：</p>
+<ul>
+<li>网站不需要 SEO 支持</li>
+<li>拥有相应的应用管理机制。</li>
+</ul>
+<p>在很多业务场景下，难免会遇到一些难以解决的问题，那么可以引入 iframe 来解决。</p>
+<h3 id="2-6-Web-Components"><a href="#2-6-Web-Components" class="headerlink" title="2.6 Web Components"></a>2.6 Web Components</h3><p>Web Components 是一套不同的技术，允许开发者创建可重用的定制元素（它们的功能封装在代码之外）并且在您 Web 应用中使用它们。</p>
+<p>在真正的项目上使用 Web Components 技术，离现在还有一些距离，结合 Web Components 来构建前端应用，是一种面向未来演进的架构。或者说在未来可以采用这种方式来构建应用。</p>
+<p>如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-30_22-36-43.png">
+<p>在真实的业务场景中，往往是上面提到六种方式中的几种的结合使用，或者是某种方式的变种。下面看我遇到的真实场景。</p>
+<h2 id="三、真实的业务场景"><a href="#三、真实的业务场景" class="headerlink" title="三、真实的业务场景"></a>三、真实的业务场景</h2><p>现有三个内部系统，下面称之为 old-a、old-b 和 C，其中，old-a 和 old-b 是老旧的前后端未分离项目，C 为前后端分离的 SPA 应用（React + HIUI），三个系统的架构图大致如下：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-31_09-24-28.png">
+<p>可以看到，old-a 运行在一台服务器 1 上，old-b 运行在服务器 2 上，C 系统的前端资源在服务器 2 上，并且 C 没有自己的域名。</p>
+<p>三个系统均在后端同学维护和开发，他们的需求如下：</p>
+<ul>
+<li>统一的域名</li>
+<li>统一的界面和交互</li>
+<li>系统需要方便拓展</li>
+<li>不希望开发阶段每个系统有独立的代码仓库</li>
+<li>CI 构建</li>
+</ul>
+<h2 id="四、怎么改造？"><a href="#四、怎么改造？" class="headerlink" title="四、怎么改造？"></a>四、怎么改造？</h2><h3 id="4-1-关键点"><a href="#4-1-关键点" class="headerlink" title="4.1 关键点"></a>4.1 关键点</h3><p>考虑开发同学的需求和开发成本、维护成本、未来的可拓展性，系统改造关键点如下：</p>
+<ol>
+<li>申请统一的域名（暂且称之为 crm.mi.com）</li>
+<li>将 old-a 和 old-b 两个老旧的系统样式调整，像系统 C 靠拢</li>
+<li>三个系统使用统一的菜单和权限</li>
+<li>三个系统使用统一的 SSO</li>
+<li>C 系统和正在开发的 X 个系统使用 CI 解决打包和手动 copy 的问题</li>
+</ol>
+<h3 id="4-2-微前端几种方式对比"><a href="#4-2-微前端几种方式对比" class="headerlink" title="4.2 微前端几种方式对比"></a>4.2 微前端几种方式对比</h3><p>总体的改造方案使用微前端的思想进行。对上面提到的六种方式进行对比：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-31_10-01-48.png">
+<h3 id="4-3-实施"><a href="#4-3-实施" class="headerlink" title="4.3 实施"></a>4.3 实施</h3><p>对于上面几种方式，在具体的实施使用了路由分发、iFrame、应用微服务化、微应用化的融合方式。或者说是某种方案的变种，因为改造之后同时具备了这几种方案的特点。</p>
+<p>对于 C 系统和正在开发的 x 个系统使用 single-spa 做改造，对于老旧的系统 old-a 和 old-b 使用 iframe 接入。</p>
+<p>改造后如下图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-31_10-24-53.png">
+<p>此时，两个老系统分别部署在各自的服务器，C 和未来的多个应用部署在同一台服务器。然后，在 Nginx 层 为老系统分配了两个路由（暂且称之为 old-a 和 old-b），分别将请求打到各自的服务器，根路由打到 C 和 xx 应用的服务器。</p>
+<p>使用 React 框架的 C 和 xx 应用基于 single-spa 改造后，那么老系统 iframe 如何接入？</p>
+<p>在配置菜单时，老系统路由会被带上标识，统一交给其中一个应用以 iframe 的方式处理。</p>
+<p>如图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-31_11-01-55.png">
+<p>改造后微前端架构图：</p>
+<img src="/2020/04/14/fe-microfrontends-practice/2020-03-31_14-51-36.png">
+<h2 id="五、一些问题"><a href="#五、一些问题" class="headerlink" title="五、一些问题"></a>五、一些问题</h2><h3 id="5-1-子应用注册方式"><a href="#5-1-子应用注册方式" class="headerlink" title="5.1 子应用注册方式"></a>5.1 子应用注册方式</h3><p>官方示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// single-spa-config.js</span></span><br><span class="line"><span class="keyword">import</span> &#123; registerApplication, start &#125; <span class="keyword">from</span> <span class="string">'single-spa'</span></span><br><span class="line"></span><br><span class="line">registerApplication(<span class="string">"applicationName"</span>, loadingFunction, activityFunction)</span><br><span class="line">start()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">loadingFunction</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">import</span>(<span class="string">"src/app1/main.js"</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">activityFunction</span>(<span class="params">location</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> location.pathname.indexOf(<span class="string">"/app1/"</span>) === <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当增加一个应用的时候，就需要对 <code>single-spa-config.js</code> 文件进行修改。</p>
+<p>通过可配置的方式实现子应用注册：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// single-spa-config.js</span></span><br><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> singleSpa <span class="keyword">from</span> <span class="string">'single-spa'</span></span><br><span class="line"><span class="keyword">import</span> config <span class="keyword">from</span> <span class="string">'./manifest.json'</span></span><br><span class="line"></span><br><span class="line">registerApp(config)</span><br><span class="line"></span><br><span class="line">singleSpa.start()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">registerApp</span>(<span class="params">conf</span>) </span>&#123;</span><br><span class="line">  conf.forEach(<span class="function"><span class="params">application</span> =&gt;</span> &#123;</span><br><span class="line">    singleSpa.registerApplication(</span><br><span class="line">      application.name,</span><br><span class="line">      () =&gt; <span class="keyword">import</span>(<span class="string">`./<span class="subst">$&#123;application.name&#125;</span>.app/index.js`</span>),</span><br><span class="line">      pathPrefix(application.activeRule, application.strict),</span><br><span class="line">    )</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">pathPrefix</span>(<span class="params">prefix, strict</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span>(<span class="params">location</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (strict) &#123;</span><br><span class="line">      <span class="keyword">return</span> location.pathname === prefix</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> location.pathname.startsWith(<span class="string">`<span class="subst">$&#123;prefix&#125;</span>`</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">// manifest.json</span><br><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"name"</span>: <span class="string">"layout"</span>,</span><br><span class="line">    <span class="attr">"activeRule"</span>: <span class="string">"/"</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"name"</span>: <span class="string">"welcome"</span>,</span><br><span class="line">    <span class="attr">"activeRule"</span>: <span class="string">"/"</span>,</span><br><span class="line">    <span class="attr">"strict"</span>: <span class="literal">true</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"name"</span>: <span class="string">"iframe"</span>,</span><br><span class="line">    <span class="attr">"activeRule"</span>: <span class="string">"/link"</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"name"</span>: <span class="string">"app1"</span>,</span><br><span class="line">    <span class="attr">"activeRule"</span>: <span class="string">"/app1"</span></span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    <span class="attr">"name"</span>: <span class="string">"app2"</span>,</span><br><span class="line">    <span class="attr">"activeRule"</span>: <span class="string">"/app2"</span></span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<h3 id="5-2-共享-cookie"><a href="#5-2-共享-cookie" class="headerlink" title="5.2 共享 cookie"></a>5.2 共享 cookie</h3><p>将域名统一的一大好处是 iframe 域名和主应用域名同源。没有了跨域 可以在 <code>layout</code> 统一 SSO 登录，通过 cookie 共享让其他模块拿到登录信息。</p>
+<h3 id="5-3-应用之间数据共享及通信"><a href="#5-3-应用之间数据共享及通信" class="headerlink" title="5.3 应用之间数据共享及通信"></a>5.3 应用之间数据共享及通信</h3><p>由于此次改造，应用之间不涉及数据共享，所以没有顶级 store 的概念。模块之间的简单通信 可以通过 <code>postMessage</code> 或基于浏览器原生事件做通信。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 应用 A</span></span><br><span class="line"><span class="built_in">window</span>.dispatchEvent(</span><br><span class="line">  <span class="keyword">new</span> CustomEvent(<span class="string">'iframe:change'</span>, &#123; <span class="attr">detail</span>: &#123; <span class="attr">path</span>: <span class="string">'/a/b/c'</span>&#125; &#125;)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 应用 B</span></span><br><span class="line"><span class="built_in">window</span>.addEventListener(<span class="string">'iframe:change'</span>, (event) =&gt; &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(event.detail.path)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h3 id="5-4-css-隔离"><a href="#5-4-css-隔离" class="headerlink" title="5.4 css 隔离"></a>5.4 css 隔离</h3><p>样式的隔离有很多种处理方式，如：BEM、CSS Module、css 前缀、动态加载/卸载样式表、Web Components 自带隔离机制等。</p>
+<p>此次采用添加 css 前缀来隔离样式，比如 postcss 插件：<code>postcss-plugin-namespace</code>。但是这个插件并不满足需求，我们的应用分布在 <code>src/</code>下，并以 <code>name.app</code> 的方式命名，需要给不同的应用添加不同的前缀。因此使用自己定制的插件：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">postcss.plugin(<span class="string">'postcss-plugin-namespace'</span>, <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="function"><span class="keyword">function</span>(<span class="params">css</span>) </span>&#123;</span><br><span class="line">    css.walkRules(<span class="function"><span class="params">rule</span> =&gt;</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (rule.parent &amp;&amp; rule.parent.type === <span class="string">'atrule'</span> &amp;&amp; rule.parent.name !== <span class="string">'media'</span>) <span class="keyword">return</span></span><br><span class="line">      <span class="keyword">const</span> filePath = rule.source &amp;&amp; rule.source.input.file</span><br><span class="line">      <span class="keyword">const</span> appName = <span class="regexp">/src\/(\S*?)\//</span>.exec(filePath)[<span class="number">1</span>] || <span class="string">''</span></span><br><span class="line">      <span class="keyword">const</span> namespace = appName.split(<span class="string">'.'</span>)[<span class="number">0</span>] || <span class="string">''</span></span><br><span class="line"></span><br><span class="line">      rule.selectors = rule.selectors.map(<span class="function"><span class="params">s</span> =&gt;</span> <span class="string">`#<span class="subst">$&#123;namespace&#125;</span> <span class="subst">$&#123;s === <span class="string">'body'</span> ? <span class="string">''</span> : s&#125;</span>`</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h3 id="5-5-js-沙箱"><a href="#5-5-js-沙箱" class="headerlink" title="5.5 js 沙箱"></a>5.5 js 沙箱</h3><p>有一个可严重可不严重的问题，如何确保子应用之间的全局变量不会互相干扰，实现 js 的隔离。普遍的做法是给全局变量添加前缀，这种方式类似 css 的 BEM，通过约定的方式来避免冲突。这种方式简单，但不是很靠谱。</p>
+<p>qiankun 内部的实现方式是通过 <code>Proxy</code> 来实现的沙箱模式，即在应用的 <code>bootstrap</code> 及 <code>mount</code> 两个生命周期开始之前分别给全局状态打下快照，然后当应用切出/卸载时，将状态回滚至 <code>bootstrap</code> 开始之前的阶段，确保应用对全局状态的污染全部清零。有兴趣的同学可以看源码。</p>
+<h2 id="六、优化体验-PWA"><a href="#六、优化体验-PWA" class="headerlink" title="六、优化体验 PWA"></a>六、优化体验 PWA</h2><ol>
+<li>创建桌面图标，快速访问</li>
+<li>Service Worker 缓存，对大文件和不经常更改的文件缓存，优化加载。</li>
+</ol>
+<h2 id="七、-还可以做什么？"><a href="#七、-还可以做什么？" class="headerlink" title="七、 还可以做什么？"></a>七、 还可以做什么？</h2><p>上面的改造已经基本满足了业务需求，针对此业务还有更进一步的做法，达到更好的体验：</p>
+<ul>
+<li>可以使用 <a href="https://github.com/lerna/lerna" target="_blank" rel="noopener">lerna </a> 统一管理所有项目，方便维护，或者让每个应用拥有独立的仓库，做到独立开发。</li>
+<li>可以使用 <a href="https://github.com/systemjs/systemjs" target="_blank" rel="noopener">SystemJS</a> 实现应用的动态加载、独立部署。</li>
+</ul>
+<h2 id="八、总结"><a href="#八、总结" class="headerlink" title="八、总结"></a>八、总结</h2><p>上面提到，此次的实践方式是微前端实现方式中几种的结合，或者是某种方式的变种。也许在理论上并不是最优的，但是在具体的问题中要是最优解。架构设计必须要与当前要解决的问题相匹配，<strong>“没有最优的架构，只有最合适的架构”</strong>。</p>
+<p>微前端不是一个框架或者工具，而是一套架构体系。</p>
+<p>这套体系除了<strong>微前端的基础设施</strong>外还需要具备<strong>微前端配置中心</strong>（版本管理、发布策略、动态构建、中心化管理）、<strong>微前端观察工具</strong>（应用状态可见、可控）等。</p>
+<p>整个体系的搭建将是一个庞大的工程，目前大部分团队是在使用微前端的模式和思想来解决现有系统中的痛点。</p>
+<h2 id="九、推荐阅读"><a href="#九、推荐阅读" class="headerlink" title="九、推荐阅读"></a>九、推荐阅读</h2><p><a href="https://alili.tech/archive/ea599f7c/" target="_blank" rel="noopener">前端微服务化解决方案</a></p>
+<p><a href="https://zhuanlan.zhihu.com/p/78362028" target="_blank" rel="noopener">可能是你见过最完善的微前端解决方案</a></p>
+<p><a href="https://microfrontends.cn/" target="_blank" rel="noopener">微前端的那些事儿</a></p>
+<p><a href="https://micro-frontends.org/" target="_blank" rel="noopener">Micro Frontends</a></p>
+<p><a href="https://single-spa.js.org/" target="_blank" rel="noopener">https://single-spa.js.org/</a></p>
+<hr>
+<p><strong>作者</strong></p>
+<p>李帅帅，小米信息技术部平台部前端组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#架构设计" >
+    <span class="tag-code">架构设计</span>
+  </a>
+
+  <a href="/tags#微前端" >
+    <span class="tag-code">微前端</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/03/27/oo-use-template/">
+        <span class="nav-arrow">← </span>
+        
+          设计模式基础之——模板模式业务实战
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/05/24/analysis-of-correlation/">
+        
+          统计建模初探 —— Analysis of Correlation
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#一、前言"><span class="toc-nav-text">一、前言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#二、实施微前端的六种方式"><span class="toc-nav-text">二、实施微前端的六种方式</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-1-路由分发"><span class="toc-nav-text">2.1 路由分发</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-2-前端微服务化"><span class="toc-nav-text">2.2 前端微服务化</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-3-微应用"><span class="toc-nav-text">2.3 微应用</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-4-微件化"><span class="toc-nav-text">2.4 微件化</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-5-iframe"><span class="toc-nav-text">2.5 iframe</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-6-Web-Components"><span class="toc-nav-text">2.6 Web Components</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#三、真实的业务场景"><span class="toc-nav-text">三、真实的业务场景</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#四、怎么改造？"><span class="toc-nav-text">四、怎么改造？</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-1-关键点"><span class="toc-nav-text">4.1 关键点</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-2-微前端几种方式对比"><span class="toc-nav-text">4.2 微前端几种方式对比</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-3-实施"><span class="toc-nav-text">4.3 实施</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#五、一些问题"><span class="toc-nav-text">五、一些问题</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-1-子应用注册方式"><span class="toc-nav-text">5.1 子应用注册方式</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-2-共享-cookie"><span class="toc-nav-text">5.2 共享 cookie</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-3-应用之间数据共享及通信"><span class="toc-nav-text">5.3 应用之间数据共享及通信</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-4-css-隔离"><span class="toc-nav-text">5.4 css 隔离</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-5-js-沙箱"><span class="toc-nav-text">5.5 js 沙箱</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#六、优化体验-PWA"><span class="toc-nav-text">六、优化体验 PWA</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#七、-还可以做什么？"><span class="toc-nav-text">七、 还可以做什么？</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#八、总结"><span class="toc-nav-text">八、总结</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#九、推荐阅读"><span class="toc-nav-text">九、推荐阅读</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/04/14/fe-microfrontends-practice/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "微前端在小米 CRM 系统的实践",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

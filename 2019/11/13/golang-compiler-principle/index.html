@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      走进Golang之编译器原理 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>走进Golang之编译器原理</h2>
+  <p class="post-date">2019-11-13</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h2 id="认识-go-build"><a href="#认识-go-build" class="headerlink" title="认识 go build"></a>认识 go build</h2><p>当我们敲下 <code>go build</code> 的时候，我们的写的源码文件究竟经历了哪些事情？最终变成了可执行文件。</p>
+<p>这个命令会编译 go 代码，今天就来一起看看 go 的编译过程吧！</p>
+<p>首先先来认识以下 go 的代码源文件分类</p>
+<ul>
+<li>命令源码文件：简单说就是含有 main 函数的那个文件，通常一个项目一个该文件，我也没想过需要两个命令源文件的项目</li>
+<li>测试源码文件：就是我们写的单元测试的代码，都是以 <code>_test.go</code> 结尾</li>
+<li>库源码文件：没有上面特征的就是库源码文件，像我们使用的很多第三方包都属于这部分</li>
+</ul>
+<p><code>go build</code> 命令就是用来编译这其中的 <strong>命令源码文件</strong> 以及它依赖的 <strong>库源码文件</strong>。下面表格是一些常用的选项在这里集中说明以下。</p>
+<table>
+<thead>
+<tr>
+<th>可选项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-a</td>
+<td>将命令源码文件与库源码文件全部重新构建，即使是最新的</td>
+</tr>
+<tr>
+<td>-n</td>
+<td>把编译期间涉及的命令全部打印出来，但不会真的执行，非常方便我们学习</td>
+</tr>
+<tr>
+<td>-race</td>
+<td>开启竞态条件的检测，支持的平台有限制</td>
+</tr>
+<tr>
+<td>-x</td>
+<td>打印编译期间用到的命名，它与 -n 的区别是，它不仅打印还会执行</td>
+</tr>
+</tbody>
+</table>
+<p>接下来就用一个 hello world 程序来演示以下上面的命令选项。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    a := <span class="number">1</span> + <span class="number">2</span></span><br><span class="line">    b := <span class="number">10</span></span><br><span class="line"></span><br><span class="line">    c := a * b</span><br><span class="line">    fmt.Println(c)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果对上面的代码执行 <code>go build -n</code> 我们看一下输出信息：</p>
+<img src="/2019/11/13/golang-compiler-principle/go-byq-1.png">
+<p>来分析下整个执行过程</p>
+<img src="/2019/11/13/golang-compiler-principle/go-byq-2.png">
+<p>这一部分是编译的核心，通过 <code>compile</code>、 <code>buildid</code>、 <code>link</code> 三个命令会编译出可执行文件 <code>a.out</code>。</p>
+<p>然后通过 <code>mv</code> 命令把 a.out 移动到当前文件夹下面，并改成跟项目文件一样的名字（这里也可以自己指定名字）。</p>
+<p>文章的后面部分，我们主要讲的就是 <code>compile</code>、 <code>buildid、</code> <code>link</code> 这三个命令涉及的编译过程。</p>
+<h2 id="编译器原理"><a href="#编译器原理" class="headerlink" title="编译器原理"></a>编译器原理</h2><p>这是 go 编译器的<a href="https://github.com/golang/go/tree/master/src/cmd/compile" target="_blank" rel="noopener">源码路径</a></p>
+<img src="/2019/11/13/golang-compiler-principle/go-byq-3.png">
+<p>如上图所见，整个编译器可以分为：编译前端与编译后端；现在我们看看每个阶段编译器都做了些什么事情。先来从前端部分开始。</p>
+<h3 id="词法分析"><a href="#词法分析" class="headerlink" title="词法分析"></a>词法分析</h3><p>词法分析简单来说就是将我们写的源代码翻译成 <code>Token</code>，这是个什么意思呢？</p>
+<p>为了理解 <code>Golang</code> 从源代码翻译到 <code>Token</code> 的过程，我们用一段代码来看一下翻译的一一对应情况。</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    fmt.Println(<span class="string">"Hello Golang!"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<img src="/2019/11/13/golang-compiler-principle/go-byq-4.png">
+<p>图中重要的地方我都进行了注释，不过这里还是有几句话多说一下，我们看着上面的代码想象以下，如果要我们自己来实现这个“翻译工作”，程序要如何识别 <code>Token</code> 呢？</p>
+<p>首先先来给 Go 的 token 类型分个类：变量名、字面量、操作符、分隔符以及关键字。我们需要把一堆源代码按照规则进行拆分，其实就是分词，看着上面的例子代码我们可以大概制定一个规则如下：</p>
+<ol>
+<li>识别空格，如果是空格可以分一个词；</li>
+<li>遇到 <code>(</code> 、<code>)</code>、’&lt;’、’&gt;’ 等这些特殊运算符的时候算一个分词；</li>
+<li>遇到 “ 或者 数字字面量算分词。</li>
+</ol>
+<p>通过上面的简单分析，其实可以看出源代码转 <code>Token</code> 其实没有非常复杂，完全可以自己写代码实现出来。当然也有很多通过正则的方式实现的比较通用的词法分析器，像 <code>Golang</code> 早期就用的是 <code>lex</code>，在后面的版本中才改用了用 go 来自己实现。</p>
+<h3 id="语法分析"><a href="#语法分析" class="headerlink" title="语法分析"></a>语法分析</h3><p>经过词法分析后，我们拿到的就是 <code>Token</code> 序列，它将作为语法分析器的输入。然后经过处理后生成 <code>AST</code> 结构作为输出。</p>
+<p>所谓的语法分析就是将 <code>Token</code> 转化为可识别的程序语法结构，而 <code>AST</code> 就是这个语法的抽象表示。构造这颗树有两种方法。</p>
+<ol>
+<li><p>自上而下<br>这种方式会首先构造根节点，然后就开始扫描 <code>Token</code>，遇到 <code>STRING</code> 或者其它类型就知道这是在进行类型申明，<code>func</code> 就表示是函数申明。就这样一直扫描直到程序结束。</p>
+</li>
+<li><p>自下而上<br>这种是与上一种方式相反的，它先构造子树，然后再组装成一颗完整的树。</p>
+</li>
+</ol>
+<p>go 语言进行语法分析使用的是自下而上的方式来构造 <code>AST</code>，下面我们就来看一下 go 语言通过 <code>Token</code> 构造的这颗树是什么样子。</p>
+<img src="/2019/11/13/golang-compiler-principle/go-byq-5.png">
+<p>这其中有意思的地方我全部用文字标注出来了。你会发现其实每一个 <code>AST</code> 树的节点都与一个 <code>Token</code> 实际位置相对应。</p>
+<p>这颗树构造后，我们可以看到不同的类型是由对应的结构体来进行表示的。这里如果有语法、词法错误是不会被解析出来的。因为到目前为止说白了都是进行的字符串处理。</p>
+<h3 id="语义分析"><a href="#语义分析" class="headerlink" title="语义分析"></a>语义分析</h3><p>编译器里边都把语法分析后的阶段叫做 <strong>语义分析</strong>，而 go 的这个阶段叫 <strong>类型检查</strong>；但是我看了以下 go 自己的文档，其实做的事情没有太大差别，我们还是按照主流规范来写这个过程。</p>
+<p>那么语义分析（类型检查）究竟要做些什么呢？</p>
+<p><code>AST</code> 生成后，语义分析将使用它作为输入，并且的有一些相关的操作也会直接在这颗树上进行改写。</p>
+<p>首先就是 <code>Golang</code> 文档中提到的会进行类型检查，还有类型推断，查看类型是否匹配，是否进行隐式转化（go 没有隐式转化）。如下面的文字所说：</p>
+<blockquote>
+<p>The AST is then type-checked. The first steps are name resolution and type inference, which determine which object belongs to which identifier, and what type each expression has. Type-checking includes certain extra checks, such as “declared and not used” as well as determining whether or not a function terminates.</p>
+</blockquote>
+<p>大意是：生成 AST 之后是类型检查（也就是我们这里说的语义分析），第一步是进行名称检查和类型推断，签定每个对象所属的标识符，以及每个表达式具有什么类型。类型检查也还有一些其它的检查要做，像“声明未使用”以及确定函数是否中止。</p>
+<blockquote>
+<p>Certain transformations are also done on the AST. Some nodes are refined based on type information, such as string additions being split from the arithmetic addition node type. Some other examples are dead code elimination, function call inlining, and escape analysis.</p>
+</blockquote>
+<p>这一段是说：AST 也会进行转换，有些节点根据类型信息进行精简，比如从算术加法节点类型中拆分出字符串加法。其它一些例子像 dead code 的消除，函数调用内联和逃逸分析。</p>
+<p>上面两段文字来自 <a href="https://github.com/golang/go/tree/master/src/cmd/compile" target="_blank" rel="noopener">golang compile</a>。</p>
+<p>这里多说一句，我们常常在 debug 代码的时候，需要禁止内联，其实就是操作的这个阶段。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 编译的时候禁止内联</span><br><span class="line">go build -gcflags &apos;-N -l&apos;</span><br><span class="line"></span><br><span class="line">-N 禁止编译优化</span><br><span class="line">-l 禁止内联,禁止内联也可以一定程度上减小可执行程序大小</span><br></pre></td></tr></table></figure>
+<hr>
+<p>经过语义分析之后，就可以说明我们的代码结构、语法都是没有问题的。所以编译器前端主要就是解析出编译器后端可以处理的正确的 AST 结构。</p>
+<p>接下来我们看看编译器后端又有哪些事情要做。机器只能够理解二进制并运行，所以编译器后端的任务简单来说就是怎么把 AST 翻译成机器码。</p>
+<h3 id="中间码生成"><a href="#中间码生成" class="headerlink" title="中间码生成"></a>中间码生成</h3><p>既然已经拿到 AST，机器运行需要的又是二进制。为什么不直接翻译成二进制呢？其实到目前为止从技术上来说已经完全没有问题了。</p>
+<p>但是，我们有各种各样的操作系统，有不同的 CPU 类型，每一种的位数可能不同；寄存器能够使用的指令也不同，像是复杂指令集与精简指令集等；在进行各个平台的兼容之前，我们还需要替换一些底层函数，比如我们使用 make 来初始化 slice，此时会根据传入的类型替换为：<code>makeslice64</code> 或者 <code>makeslice</code>。当然还有像 painc、channel 等等函数的替换也会在中间码生成过程中进行替换。这一部分的替换操作可以在<a href="https://github.com/golang/go/blob/master/src/cmd/compile/internal/gc/builtin/runtime.go" target="_blank" rel="noopener">这里查看</a>。</p>
+<p>中间码存在的另外一个价值是提升后端编译的重用，比如我们定义好了一套中间码应该是长什么样子，那么后端机器码生成就是相对固定的。每一种语言只需要完成自己的编译器前端工作即可。这也是大家可以看到现在开发一门新语言速度比较快的原因。编译是绝大部分都可以重复使用的。</p>
+<p>而且为了接下来的优化工作，中间代码存在具有非凡的意义。因为有那么多的平台，如果有中间码我们可以把一些共性的优化都放到这里。</p>
+<p>中间码也是有多种格式的，像 <code>Golang</code> 使用的就是 SSA 特性的中间码(IR)，这种形式的中间码，最重要的一个特性就是最在使用变量之前总是定义变量，并且每个变量只分配一次。</p>
+<h3 id="代码优化"><a href="#代码优化" class="headerlink" title="代码优化"></a>代码优化</h3><p>在 go 的编译文档中，我并没找到独立的一步进行代码的优化。不过根据我们上面的分析，可以看到其实代码优化过程遍布编译器的每一个阶段。大家都会力所能及的做些事情。</p>
+<p>通常我们除了用高效代码替换低效的之外，还有如下的一些处理：</p>
+<ul>
+<li>并行性，充分利用现在多核计算机的特性</li>
+<li>流水线，cpu 有时候在处理 a 指令的时候，还能同时处理 b 指令</li>
+<li>指令的选择，为了让 cpu 完成某些操作，需要使用指令，但是不同的指令效率有非常大的差别，这里会进行指令优化</li>
+<li>利用寄存器与高速缓存，我们都知道 cpu 从寄存器取是最快的，从高速缓存取次之。这里会进行充分的利用</li>
+</ul>
+<h3 id="机器码生成"><a href="#机器码生成" class="headerlink" title="机器码生成"></a>机器码生成</h3><p>经过优化后的中间代码，首先会在这个阶段被转化为汇编代码（Plan9），而汇编语言仅仅是机器码的文本表示，机器还不能真的去执行它。所以这个阶段会调用汇编器，汇编器会根据我们在执行编译时设置的架构，调用对应代码来生成目标机器码。</p>
+<p>这里比有意思的是，<code>Golang</code> 总说自己的汇编器是跨平台的。其实他也是写了多分代码来翻译最终的机器码。因为在入口的时候他会根据我们所设置的 <code>GOARCH=xxx</code> 参数来进行初始化处理，然后最终调用对应架构编写的特定方法来生成机器码。这种上层逻辑一致，底层逻辑不一致的处理方式非常通用，非常值得我们学习。我们简单来一下这个处理。</p>
+<p>首先看入口函数 <code>cmd/compile/main.go:main()</code></p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> archInits = <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="function"><span class="keyword">func</span><span class="params">(*gc.Arch)</span></span>&#123;</span><br><span class="line">    <span class="string">"386"</span>:      x86.Init,</span><br><span class="line">    <span class="string">"amd64"</span>:    amd64.Init,</span><br><span class="line">    <span class="string">"amd64p32"</span>: amd64.Init,</span><br><span class="line">    <span class="string">"arm"</span>:      arm.Init,</span><br><span class="line">    <span class="string">"arm64"</span>:    arm64.Init,</span><br><span class="line">    <span class="string">"mips"</span>:     mips.Init,</span><br><span class="line">    <span class="string">"mipsle"</span>:   mips.Init,</span><br><span class="line">    <span class="string">"mips64"</span>:   mips64.Init,</span><br><span class="line">    <span class="string">"mips64le"</span>: mips64.Init,</span><br><span class="line">    <span class="string">"ppc64"</span>:    ppc64.Init,</span><br><span class="line">    <span class="string">"ppc64le"</span>:  ppc64.Init,</span><br><span class="line">    <span class="string">"s390x"</span>:    s390x.Init,</span><br><span class="line">    <span class="string">"wasm"</span>:     wasm.Init,</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 从上面的map根据参数选择对应架构的处理</span></span><br><span class="line">    archInit, ok := archInits[objabi.GOARCH]</span><br><span class="line">    <span class="keyword">if</span> !ok &#123;</span><br><span class="line">        ......</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 把对应cpu架构的对应传到内部去</span></span><br><span class="line">    gc.Main(archInit)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>然后在 <code>cmd/internal/obj/plist.go</code> 中调用对应架构的方法进行处理</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Flushplist</span><span class="params">(ctxt *Link, plist *Plist, newprog ProgAlloc, myimportpath <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">    ... ...</span><br><span class="line">    <span class="keyword">for</span> _, s := <span class="keyword">range</span> text &#123;</span><br><span class="line">        mkfwd(s)</span><br><span class="line">        linkpatch(ctxt, s, newprog)</span><br><span class="line">        <span class="comment">// 对应架构的方法进行自己的机器码翻译</span></span><br><span class="line">        ctxt.Arch.Preprocess(ctxt, s, newprog)</span><br><span class="line">        ctxt.Arch.Assemble(ctxt, s, newprog)</span><br><span class="line"></span><br><span class="line">        linkpcln(ctxt, s)</span><br><span class="line">        ctxt.populateDWARF(plist.Curfn, s, myimportpath)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>整个过程下来，可以看到编译器后端有很多工作需要做的，你需要对某一个指令集、cpu 的架构了解，才能正确的进行翻译机器码。同时不能仅仅是正确，一个语言的效率是高还是低，也在很大程度上取决于编译器后端的优化。特别是即将进入 AI 时代，越来越多的芯片厂商诞生，我估计以后对这方面人才的需求会变得越来越旺盛。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>总结一下学习编译器这部分古老知识带给我的几个收获：</p>
+<ol>
+<li>知道整个编译由几个阶段构成，每个阶段做什么事情；但是更深入的每个阶段实现的一些细节还不知道，也不打算知道；</li>
+<li>就算是编译器这种复杂，很底层的东西也是可以通过分解，让每一个阶段独立变得简单、可复用，这对我在做应用开发有一些意义；</li>
+<li>分层是为了划分指责，但是某些事情还需要全局的去做，比如优化，其实每一个阶段都会去做；对于我们设计系统也是有一定参考意义的；</li>
+<li>了解到 <code>Golang</code> 对外暴露的很多方法其实是语法糖（如：make、painc etc.），编译器会帮我忙进行翻译，最开始我以为是 go 代码层面在运行时去做的，类似工厂模式，现在回头来看自己真是太天真了；</li>
+<li>对接下来准备学习 Go 的运行机制、以及 Plan9 汇编进行了一些基础准备。</li>
+</ol>
+<p>本文的很多信息都来自下面的资料。</p>
+<ul>
+<li>[1]<a href="https://github.com/golang/go/tree/master/src/cmd/compile" target="_blank" rel="noopener">golang compile</a></li>
+<li>[2]<a href="https://github.com/golang/go/tree/master/src/cmd/compile/internal/ssa" target="_blank" rel="noopener">golang ssa</a></li>
+<li>[3]<a href="https://halfrost.com/go_command/" target="_blank" rel="noopener">golang command</a></li>
+<li>[4]<a href="https://draveness.me/golang/compile/golang-compile-intro.html" target="_blank" rel="noopener">golang compile 介绍</a></li>
+<li>[5]<a href="https://segmentfault.com/a/1190000016523685" target="_blank" rel="noopener">golang 编译流程分析</a></li>
+</ul>
+<h2 id="下回预告"><a href="#下回预告" class="headerlink" title="下回预告"></a>下回预告</h2><p>本文介绍了整个编译流程，下一篇会介绍 Golang 的汇编是如何在内存、CPU、操作系统的联合下运行起来的，以及通过例子介绍如何阅读 Plan9 汇编。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>何磊，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#编译器" >
+    <span class="tag-code">编译器</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/10/11/oo-design/">
+        <span class="nav-arrow">← </span>
+        
+          设计模式基础之——面向对象的设计过程
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/11/27/golang-compiler-plan9/">
+        
+          走进Golang之运行与Plan9汇编
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#认识-go-build"><span class="toc-nav-text">认识 go build</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#编译器原理"><span class="toc-nav-text">编译器原理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#词法分析"><span class="toc-nav-text">词法分析</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#语法分析"><span class="toc-nav-text">语法分析</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#语义分析"><span class="toc-nav-text">语义分析</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#中间码生成"><span class="toc-nav-text">中间码生成</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#代码优化"><span class="toc-nav-text">代码优化</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#机器码生成"><span class="toc-nav-text">机器码生成</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#下回预告"><span class="toc-nav-text">下回预告</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/11/13/golang-compiler-principle/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "走进Golang之编译器原理",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

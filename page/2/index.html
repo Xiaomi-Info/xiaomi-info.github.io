@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link active">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link mobile-active">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <main class="app-body">
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/30/grpc-deadline/">gRPC 系列——grpc 超时传递原理</a>
+      </h2>
+      <p class="article-date">December 30, 2019</p>
+      
+        
+  <a href="/tags#微服务" >
+    <span class="tag-code">微服务</span>
+  </a>
+
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#gRPC" >
+    <span class="tag-code">gRPC</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          gRPC 系列——grpc超时传递原理[作者简介] 郑伟，小米信息技术部架构组
+引子有个业务方反馈说日志中偶尔出现 xorm 抛出来的 context deadline exceeded 的报错，想咨询下是什么原因。业务方实现的 gRPC Handler 大概代码如下：
+12345678fu ...
+        
+      </div>
+      <a class="more" href="/2019/12/30/grpc-deadline/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/24/mysql-implicit-conversion/">浅析 MySQL 的隐式转换</a>
+      </h2>
+      <p class="article-date">December 24, 2019</p>
+      
+        
+  <a href="/tags#MySQL" >
+    <span class="tag-code">MySQL</span>
+  </a>
+
+  <a href="/tags#隐式转换" >
+    <span class="tag-code">隐式转换</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          浅析 MySQL 的隐式转换[作者简介] 陈晓，信息部订单组研发工程师，目前主要负责小米订单中台业务。
+前言跟大家一块看下 MySQL 的隐式转换相关知识，主要是相等操作时，先看两个可能都遇到过的场景。
+表
+1234567891011CREATE TABLE `t1` (  `c1` var ...
+        
+      </div>
+      <a class="more" href="/2019/12/24/mysql-implicit-conversion/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/19/theadpool-rejected-task/">一次线上线程池任务问题处理历程</a>
+      </h2>
+      <p class="article-date">December 19, 2019</p>
+      
+        
+  <a href="/tags#Java" >
+    <span class="tag-code">Java</span>
+  </a>
+
+  <a href="/tags#Spring" >
+    <span class="tag-code">Spring</span>
+  </a>
+
+  <a href="/tags#线程池" >
+    <span class="tag-code">线程池</span>
+  </a>
+
+  <a href="/tags#阻塞队列" >
+    <span class="tag-code">阻塞队列</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          一次线上线程池任务问题处理历程[作者简介] 王日华，小米信息技术部订单组研发工程师，目前主要负责小米订单中台业务。
+一、前言在一次新功能上线过程中，出现线程池提交任务抛出 RejectedExecutionException 异常，即任务提交执行了拒绝策略的操作。查看业务情况和线程池配置，发 ...
+        
+      </div>
+      <a class="more" href="/2019/12/19/theadpool-rejected-task/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/17/redis-distributed-lock/">分布式锁的实现之 redis 篇</a>
+      </h2>
+      <p class="article-date">December 17, 2019</p>
+      
+        
+  <a href="/tags#redis" >
+    <span class="tag-code">redis</span>
+  </a>
+
+  <a href="/tags#分布式锁" >
+    <span class="tag-code">分布式锁</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          分布式锁的实现之 redis 篇[作者简介] 钟梦浩，信息部订单组研发工程师，目前主要负责小米订单中台业务。
+一、引言我们在系统中修改已有数据时，需要先读取，然后进行修改保存，此时很容易遇到并发问题。由于修改和保存不是原子操作，在并发场景下，部分对数据的操作可能会丢失。在单服务器系统我们常用 ...
+        
+      </div>
+      <a class="more" href="/2019/12/17/redis-distributed-lock/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/06/nsq-src/">走进 NSQ 源码细节</a>
+      </h2>
+      <p class="article-date">December 6, 2019</p>
+      
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#NSQ" >
+    <span class="tag-code">NSQ</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          1. 前言：为什么要使用 MQ 消息队列随着互联网技术在各行各业的应用高速普及与发展，各层应用之间调用关系越来越复杂，架构、开发、运维成本越来越高，高内聚、低耦合、可扩展、高可用已成为了行业需求。
+一提到消息队列 MQ(Message Queue)，我们会想到很多应用场景，比如消息通知、用户 ...
+        
+      </div>
+      <a class="more" href="/2019/12/06/nsq-src/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/12/04/third-party-pay/">如何高效对接第三方支付</a>
+      </h2>
+      <p class="article-date">December 4, 2019</p>
+      
+      <div class="article-summary">
+        
+          如何高效对接第三方支付[作者简介] 逄志强，海外小米网研发工程师，目前主要负责小米网服务构建和研发工作。
+海外小米网是小米集团自建的电商网站，是小米集团重要的销售渠道之一。电商购物流程中核心的一环是用户支付。目前我们已经服务 30 个国家和地区，不同国家往往需要对接不同的第三方支付公司，所以 ...
+        
+      </div>
+      <a class="more" href="/2019/12/04/third-party-pay/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/11/27/golang-compiler-plan9/">走进Golang之运行与Plan9汇编</a>
+      </h2>
+      <p class="article-date">November 27, 2019</p>
+      
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#汇编" >
+    <span class="tag-code">汇编</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          通过上一篇走进 Golang 之汇编原理，我们知道了目标代码的生成经历了那些过程。今天我们一起来学习一下生成的目标代码如何在计算机上执行。以及通过查阅 Golang 的 Plan9 汇编来了解 Golang 的一些内部秘密。
+Golang 的运行环境当我们把编译后的 Go 代码运行起来，它会 ...
+        
+      </div>
+      <a class="more" href="/2019/11/27/golang-compiler-plan9/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/11/13/golang-compiler-principle/">走进Golang之编译器原理</a>
+      </h2>
+      <p class="article-date">November 13, 2019</p>
+      
+        
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#编译器" >
+    <span class="tag-code">编译器</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          认识 go build当我们敲下 go build 的时候，我们的写的源码文件究竟经历了哪些事情？最终变成了可执行文件。
+这个命令会编译 go 代码，今天就来一起看看 go 的编译过程吧！
+首先先来认识以下 go 的代码源文件分类
+
+命令源码文件：简单说就是含有 main 函数的那个文件，通 ...
+        
+      </div>
+      <a class="more" href="/2019/11/13/golang-compiler-principle/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/10/11/oo-design/">设计模式基础之——面向对象的设计过程</a>
+      </h2>
+      <p class="article-date">October 11, 2019</p>
+      
+        
+  <a href="/tags#设计模式" >
+    <span class="tag-code">设计模式</span>
+  </a>
+
+      
+      <div class="article-summary">
+        
+          
+前言我一直认为分享的目的不是炫技。
+
+一是，自我学习的总结。
+二是，降低他人的学习成本。
+三是，别人对自己学习结果的审核。
+
+同时，本次分享有下面四个要素：
+
+
+
+观点
+本次分享的观点是一个软件工程中的思维方法，不限于编程语言
+
+
+
+
+探讨
+我可能理解错的，或者大家没理解的，欢迎大家可以积 ...
+        
+      </div>
+      <a class="more" href="/2019/10/11/oo-design/">Read more</a>
+    </article>
+  
+    <article class="article-card">
+      <h2 class="article-head">
+        <a href="/2019/06/21/concurrency/">当我们在谈论高并发的时候究竟在谈什么?</a>
+      </h2>
+      <p class="article-date">June 21, 2019</p>
+      
+      <div class="article-summary">
+        
+          什么是高并发?12高并发是互联网分布式系统架构的性能指标之一,它通常是指单位时间内系统能够同时处理的请求数,简单点说，就是QPS(Queries per second)。
+那么我们在谈论高并发的时候，究竟在谈些什么东西呢？
+高并发究竟是什么?这里先给出结论:高并发的基本表现为单位时间内系统能 ...
+        
+      </div>
+      <a class="more" href="/2019/06/21/concurrency/">Read more</a>
+    </article>
+  
+
+  
+    <div class="guide-pager">
+  
+    <a href="/"><span class="page-arrow">← </span>Prev</a>
+  
+  
+    <a href="/page/3/">Next<span class="page-arrow"> →</span></a>
+  
+</div>
+  
+</main>
+
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

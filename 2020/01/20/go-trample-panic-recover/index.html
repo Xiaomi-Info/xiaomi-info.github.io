@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      Go 语言踩坑记——panic 与 recover | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>Go 语言踩坑记——panic 与 recover</h2>
+  <p class="post-date">2020-01-20</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="Go-语言踩坑记——panic-与-recover"><a href="#Go-语言踩坑记——panic-与-recover" class="headerlink" title="Go 语言踩坑记——panic 与 recover"></a>Go 语言踩坑记——panic 与 recover</h1><p><strong>[作者简介]</strong> 易乐天，小米信息技术部海外商城组</p>
+<h2 id="题记"><a href="#题记" class="headerlink" title="题记"></a>题记</h2><p>Go 语言自发布以来，一直以高性能、高并发著称。因为标准库提供了 http 包，即使刚学不久的程序员，也能轻松写出 http 服务程序。</p>
+<p>不过，任何事情都有两面性。一门语言，有它值得骄傲的有点，也必定隐藏了不少坑。新手若不知道这些坑，很容易就会掉进坑里。《 Go 语言踩坑记》系列博文将以 Go 语言中的 <code>panic</code> 与 <code>recover</code> 开头，给大家介绍笔者踩过的各种坑，以及填坑方法。</p>
+<h2 id="初识-panic-和-recover"><a href="#初识-panic-和-recover" class="headerlink" title="初识 panic 和 recover"></a>初识 panic 和 recover</h2><ul>
+<li><code>panic</code><br><code>panic</code> 这个词，在英语中具有<code>恐慌、恐慌的</code>等意思。从字面意思理解的话，在 Go 语言中，代表极其严重的问题，程序员最害怕出现的问题。一旦出现，就意味着程序的结束并退出。Go 语言中 <code>panic</code> 关键字主要用于主动抛出异常，类似 <code>java</code> 等语言中的 <code>throw</code> 关键字。</li>
+<li><code>recover</code><br><code>recover</code> 这个词，在英语中具有<code>恢复、复原</code>等意思。从字面意思理解的话，在 Go 语言中，代表将程序状态从严重的错误中恢复到正常状态。Go 语言中 <code>recover</code> 关键字主要用于捕获异常，让程序回到正常状态，类似 <code>java</code> 等语言中的 <code>try ... catch</code> 。</li>
+</ul>
+<p>笔者有过 6 年 linux 系统 C 语言开发经历。C 语言中没有异常捕获的概念，没有 <code>try ... catch</code> ，也没有 <code>panic</code> 和 <code>recover</code> 。不过，万变不离其宗，异常与 <code>if error then return</code> 方式的差别，主要体现在函数调用栈的深度上。如下图：</p>
+<img src="/2020/01/20/go-trample-panic-recover/longjump.png">
+<p>正常逻辑下的函数调用栈，是逐个回溯的，而异常捕获可以理解为：程序调用栈的长距离跳转。这点在 C 语言里，是通过 <code>setjump</code> 和 <code>longjump</code> 这两个函数来实现的。</p>
+<p><code>try catch</code> 、 <code>recover</code> 、<code>setjump</code> 等机制会将程序当前状态（主要是 cpu 的栈指针寄存器 sp 和程序计数器 pc ， Go 的 <code>recover</code> 是依赖 <code>defer</code> 来维护 sp 和 pc ）保存到一个与 <code>throw</code>、<code>panic</code>、<code>longjump</code>共享的内存里。当有异常的时候，从该内存中提取之前保存的 sp 和 pc 寄存器值，直接将函数栈调回到 sp 指向的位置，并执行 ip 寄存器指向的下一条指令，将程序从异常状态中恢复到正常状态。</p>
+<h2 id="深入-panic-和-recover"><a href="#深入-panic-和-recover" class="headerlink" title="深入 panic 和 recover"></a>深入 panic 和 recover</h2><h3 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h3><p><code>panic</code> 和 <code>recover</code> 的源码在 Go 源码的 <code>src/runtime/panic.go</code> 里，名为 <code>gopanic</code> 和 <code>gorecover</code> 的函数。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// gopanic 的代码，在 src/runtime/panic.go 第 454 行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// The implementation of the predeclared function panic.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gopanic</span><span class="params">(e <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">  gp := getg()</span><br><span class="line">  <span class="keyword">if</span> gp.m.curg != gp &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"panic: "</span>)</span><br><span class="line">    printany(e)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">    throw(<span class="string">"panic on system stack"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> gp.m.mallocing != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"panic: "</span>)</span><br><span class="line">    printany(e)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">    throw(<span class="string">"panic during malloc"</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> gp.m.preemptoff != <span class="string">""</span> &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"panic: "</span>)</span><br><span class="line">    printany(e)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"preempt off reason: "</span>)</span><br><span class="line">    <span class="built_in">print</span>(gp.m.preemptoff)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">    throw(<span class="string">"panic during preemptoff"</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> gp.m.locks != <span class="number">0</span> &#123;</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"panic: "</span>)</span><br><span class="line">    printany(e)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">"\n"</span>)</span><br><span class="line">    throw(<span class="string">"panic holding locks"</span>)</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">var</span> p _panic</span><br><span class="line">  p.arg = e</span><br><span class="line">  p.link = gp._panic</span><br><span class="line">  gp._panic = (*_panic)(noescape(unsafe.Pointer(&amp;p)))</span><br><span class="line"></span><br><span class="line">  atomic.Xadd(&amp;runningPanicDefers, <span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">  <span class="keyword">for</span> &#123;</span><br><span class="line">    d := gp._defer</span><br><span class="line">    <span class="keyword">if</span> d == <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">break</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// If defer was started by earlier panic or Goexit (and, since we're back here, that triggered a new panic),</span></span><br><span class="line">    <span class="comment">// take defer off list. The earlier panic or Goexit will not continue running.</span></span><br><span class="line">    <span class="keyword">if</span> d.started &#123;</span><br><span class="line">      <span class="keyword">if</span> d._panic != <span class="literal">nil</span> &#123;</span><br><span class="line">        d._panic.aborted = <span class="literal">true</span></span><br><span class="line">      &#125;</span><br><span class="line">      d._panic = <span class="literal">nil</span></span><br><span class="line">      d.fn = <span class="literal">nil</span></span><br><span class="line">      gp._defer = d.link</span><br><span class="line">      freedefer(d)</span><br><span class="line">      <span class="keyword">continue</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Mark defer as started, but keep on list, so that traceback</span></span><br><span class="line">    <span class="comment">// can find and update the defer's argument frame if stack growth</span></span><br><span class="line">    <span class="comment">// or a garbage collection happens before reflectcall starts executing d.fn.</span></span><br><span class="line">    d.started = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Record the panic that is running the defer.</span></span><br><span class="line">    <span class="comment">// If there is a new panic during the deferred call, that panic</span></span><br><span class="line">    <span class="comment">// will find d in the list and will mark d._panic (this panic) aborted.</span></span><br><span class="line">    d._panic = (*_panic)(noescape(unsafe.Pointer(&amp;p)))</span><br><span class="line"></span><br><span class="line">    p.argp = unsafe.Pointer(getargp(<span class="number">0</span>))</span><br><span class="line">    reflectcall(<span class="literal">nil</span>, unsafe.Pointer(d.fn), deferArgs(d), <span class="keyword">uint32</span>(d.siz), <span class="keyword">uint32</span>(d.siz))</span><br><span class="line">    p.argp = <span class="literal">nil</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// reflectcall did not panic. Remove d.</span></span><br><span class="line">    <span class="keyword">if</span> gp._defer != d &#123;</span><br><span class="line">      throw(<span class="string">"bad defer entry in panic"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    d._panic = <span class="literal">nil</span></span><br><span class="line">    d.fn = <span class="literal">nil</span></span><br><span class="line">    gp._defer = d.link</span><br><span class="line"></span><br><span class="line">    <span class="comment">// trigger shrinkage to test stack copy. See stack_test.go:TestStackPanic</span></span><br><span class="line">    <span class="comment">//GC()</span></span><br><span class="line"></span><br><span class="line">    pc := d.pc</span><br><span class="line">    sp := unsafe.Pointer(d.sp) <span class="comment">// must be pointer so it gets adjusted during stack copy</span></span><br><span class="line">    freedefer(d)</span><br><span class="line">    <span class="keyword">if</span> p.recovered &#123;</span><br><span class="line">      atomic.Xadd(&amp;runningPanicDefers, <span class="number">-1</span>)</span><br><span class="line"></span><br><span class="line">      gp._panic = p.link</span><br><span class="line">      <span class="comment">// Aborted panics are marked but remain on the g.panic list.</span></span><br><span class="line">      <span class="comment">// Remove them from the list.</span></span><br><span class="line">      <span class="keyword">for</span> gp._panic != <span class="literal">nil</span> &amp;&amp; gp._panic.aborted &#123;</span><br><span class="line">        gp._panic = gp._panic.link</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> gp._panic == <span class="literal">nil</span> &#123; <span class="comment">// must be done with signal</span></span><br><span class="line">        gp.sig = <span class="number">0</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="comment">// Pass information about recovering frame to recovery.</span></span><br><span class="line">      gp.sigcode0 = <span class="keyword">uintptr</span>(sp)</span><br><span class="line">      gp.sigcode1 = pc</span><br><span class="line">      mcall(recovery)</span><br><span class="line">      throw(<span class="string">"recovery failed"</span>) <span class="comment">// mcall should not return</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// ran out of deferred calls - old-school panic now</span></span><br><span class="line">  <span class="comment">// Because it is unsafe to call arbitrary user code after freezing</span></span><br><span class="line">  <span class="comment">// the world, we call preprintpanics to invoke all necessary Error</span></span><br><span class="line">  <span class="comment">// and String methods to prepare the panic strings before startpanic.</span></span><br><span class="line">  preprintpanics(gp._panic)</span><br><span class="line"></span><br><span class="line">  fatalpanic(gp._panic) <span class="comment">// should not return</span></span><br><span class="line">  *(*<span class="keyword">int</span>)(<span class="literal">nil</span>) = <span class="number">0</span>      <span class="comment">// not reached</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+  <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// gorecover 的代码，在 src/runtime/panic.go 第 585 行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// The implementation of the predeclared function recover.</span></span><br><span class="line"><span class="comment">// Cannot split the stack because it needs to reliably</span></span><br><span class="line"><span class="comment">// find the stack segment of its caller.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// TODO(rsc): Once we commit to CopyStackAlways,</span></span><br><span class="line"><span class="comment">// this doesn't need to be nosplit.</span></span><br><span class="line"><span class="comment">//go:nosplit</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">gorecover</span><span class="params">(argp <span class="keyword">uintptr</span>)</span> <span class="title">interface</span></span>&#123;&#125; &#123;</span><br><span class="line"><span class="comment">// Must be in a function running as part of a deferred call during the panic.</span></span><br><span class="line"><span class="comment">// Must be called from the topmost function of the call</span></span><br><span class="line"><span class="comment">// (the function used in the defer statement).</span></span><br><span class="line"><span class="comment">// p.argp is the argument pointer of that topmost deferred function call.</span></span><br><span class="line"><span class="comment">// Compare against argp reported by caller.</span></span><br><span class="line"><span class="comment">// If they match, the caller is the one who can recover.</span></span><br><span class="line">gp := getg()</span><br><span class="line">p := gp._panic</span><br><span class="line"><span class="keyword">if</span> p != <span class="literal">nil</span> &amp;&amp; !p.recovered &amp;&amp; argp == <span class="keyword">uintptr</span>(p.argp) &#123;</span><br><span class="line">  p.recovered = <span class="literal">true</span></span><br><span class="line">  <span class="keyword">return</span> p.arg</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从函数代码中我们可以看到 <code>panic</code> 内部主要流程是这样：</p>
+<ul>
+<li>获取当前调用者所在的 <code>g</code> ，也就是 <code>goroutine</code></li>
+<li>遍历并执行 <code>g</code> 中的 <code>defer</code> 函数</li>
+<li>如果 <code>defer</code> 函数中有调用 <code>recover</code> ，并发现已经发生了 <code>panic</code> ，则将 <code>panic</code> 标记为 <code>recovered</code></li>
+<li>在遍历 <code>defer</code> 的过程中，如果发现已经被标记为 <code>recovered</code> ，则提取出该 <code>defer</code> 的 sp 与 pc，保存在 <code>g</code> 的两个状态码字段中。</li>
+<li><p>调用 <code>runtime.mcall</code> 切到 <code>m-&gt;g0</code> 并跳转到 <code>recovery</code> 函数，将前面获取的 <code>g</code> 作为参数传给 <code>recovery</code> 函数。<br><code>runtime.mcall</code> 的代码在 go 源码的 <code>src/runtime/asm_xxx.s</code> 中，<code>xxx</code> 是平台类型，如 <code>amd64</code> 。代码如下：</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line">// src/runtime/asm_amd64.s 第 274 行</span><br><span class="line"></span><br><span class="line">// func mcall(fn func(*g))</span><br><span class="line">// Switch to m-&gt;g0&apos;s stack, call fn(g).</span><br><span class="line">// Fn must never return. It should gogo(&amp;g-&gt;sched)</span><br><span class="line">// to keep running g.</span><br><span class="line">TEXT runtime·mcall(SB), NOSPLIT, $0-8</span><br><span class="line">    MOVQ	fn+0(FP), DI</span><br><span class="line"></span><br><span class="line">    get_tls(CX)</span><br><span class="line">    MOVQ	g(CX), AX	// save state in g-&gt;sched</span><br><span class="line">    MOVQ	0(SP), BX	// caller&apos;s PC</span><br><span class="line">    MOVQ	BX, (g_sched+gobuf_pc)(AX)</span><br><span class="line">    LEAQ	fn+0(FP), BX	// caller&apos;s SP</span><br><span class="line">    MOVQ	BX, (g_sched+gobuf_sp)(AX)</span><br><span class="line">    MOVQ	AX, (g_sched+gobuf_g)(AX)</span><br><span class="line">    MOVQ	BP, (g_sched+gobuf_bp)(AX)</span><br><span class="line"></span><br><span class="line">    // switch to m-&gt;g0 &amp; its stack, call fn</span><br><span class="line">    MOVQ	g(CX), BX</span><br><span class="line">    MOVQ	g_m(BX), BX</span><br><span class="line">    MOVQ	m_g0(BX), SI</span><br><span class="line">    CMPQ	SI, AX	// if g == m-&gt;g0 call badmcall</span><br><span class="line">    JNE	3(PC)</span><br><span class="line">    MOVQ	$runtime·badmcall(SB), AX</span><br><span class="line">    JMP	AX</span><br><span class="line">    MOVQ	SI, g(CX)	// g = m-&gt;g0</span><br><span class="line">    MOVQ	(g_sched+gobuf_sp)(SI), SP	// sp = m-&gt;g0-&gt;sched.sp</span><br><span class="line">    PUSHQ	AX</span><br><span class="line">    MOVQ	DI, DX</span><br><span class="line">    MOVQ	0(DI), DI</span><br><span class="line">    CALL	DI</span><br><span class="line">    POPQ	AX</span><br><span class="line">    MOVQ	$runtime·badmcall2(SB), AX</span><br><span class="line">    JMP	AX</span><br><span class="line">    RET</span><br></pre></td></tr></table></figure>
+<p>　　这里之所以要切到 <code>m-&gt;g0</code> ，主要是因为 Go 的 <code>runtime</code> 环境是有自己的堆栈和 <code>goroutine</code>，而 <code>recovery</code> 是在 <code>runtime</code> 环境下执行的，所以要先调度到 <code>m-&gt;g0</code> 来执行 <code>recovery</code> 函数。</p>
+</li>
+<li><p><code>recovery</code> 函数中，利用 <code>g</code> 中的两个状态码回溯栈指针 sp 并恢复程序计数器 pc 到调度器中，并调用 <code>gogo</code> 重新调度 <code>g</code> ，将 <code>g</code> 恢复到调用 <code>recover</code> 函数的位置， goroutine 继续执行。<br>代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// gorecover 的代码，在 src/runtime/panic.go 第 637 行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Unwind the stack after a deferred function calls recover</span></span><br><span class="line"><span class="comment">// after a panic. Then arrange to continue running as though</span></span><br><span class="line"><span class="comment">// the caller of the deferred function returned normally.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">recovery</span><span class="params">(gp *g)</span></span> &#123;</span><br><span class="line">    <span class="comment">// Info about defer passed in G struct.</span></span><br><span class="line">    sp := gp.sigcode0</span><br><span class="line">    pc := gp.sigcode1</span><br><span class="line"></span><br><span class="line">    <span class="comment">// d's arguments need to be in the stack.</span></span><br><span class="line">    <span class="keyword">if</span> sp != <span class="number">0</span> &amp;&amp; (sp &lt; gp.stack.lo || gp.stack.hi &lt; sp) &#123;</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">"recover: "</span>, hex(sp), <span class="string">" not in ["</span>, hex(gp.stack.lo), <span class="string">", "</span>, hex(gp.stack.hi), <span class="string">"]\n"</span>)</span><br><span class="line">        throw(<span class="string">"bad recovery"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Make the deferproc for this d return again,</span></span><br><span class="line">    <span class="comment">// this time returning 1.  The calling function will</span></span><br><span class="line">    <span class="comment">// jump to the standard return epilogue.</span></span><br><span class="line">    gp.sched.sp = sp</span><br><span class="line">    gp.sched.pc = pc</span><br><span class="line">    gp.sched.lr = <span class="number">0</span></span><br><span class="line">    gp.sched.ret = <span class="number">1</span></span><br><span class="line">    gogo(&amp;gp.sched)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">// src/runtime/asm_amd64.s 第 <span class="number">274</span> 行</span><br><span class="line"></span><br><span class="line">// func gogo(buf *gobuf)</span><br><span class="line">// restore state from Gobuf<span class="comment">; longjmp</span></span><br><span class="line">TEXT runtime·gogo(SB), <span class="built_in">NOSPLIT</span>, <span class="number">$16</span>-<span class="number">8</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	buf+<span class="number">0</span>(FP), <span class="built_in">BX</span>		// gobuf</span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_g(<span class="built_in">BX</span>), <span class="built_in">DX</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="number">0</span>(<span class="built_in">DX</span>), <span class="built_in">CX</span>		// make sure g != nil</span><br><span class="line">    get_tls(<span class="built_in">CX</span>)</span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="built_in">DX</span>, g(<span class="built_in">CX</span>)</span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_sp(<span class="built_in">BX</span>), <span class="built_in">SP</span>	// restore <span class="built_in">SP</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_ret(<span class="built_in">BX</span>), <span class="built_in">AX</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_ctxt(<span class="built_in">BX</span>), <span class="built_in">DX</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_bp(<span class="built_in">BX</span>), <span class="built_in">BP</span></span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="number">$0</span>, gobuf_sp(<span class="built_in">BX</span>)	// clear to help garbage collector</span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="number">$0</span>, gobuf_ret(<span class="built_in">BX</span>)</span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="number">$0</span>, gobuf_ctxt(<span class="built_in">BX</span>)</span><br><span class="line">    <span class="keyword">MOVQ</span>	<span class="number">$0</span>, gobuf_bp(<span class="built_in">BX</span>)</span><br><span class="line">    <span class="keyword">MOVQ</span>	gobuf_pc(<span class="built_in">BX</span>), <span class="built_in">BX</span></span><br><span class="line">    <span class="keyword">JMP</span>	<span class="built_in">BX</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>以上便是 Go 底层处理异常的流程，精简为三步便是：</p>
+<ul>
+<li><code>defer</code> 函数中调用 <code>recover</code></li>
+<li>触发 <code>panic</code> 并切到 <code>runtime</code> 环境获取在 <code>defer</code> 中调用了 <code>recover</code> 的 <code>g</code> 的 sp 和 pc</li>
+<li>恢复到 <code>defer</code> 中 <code>recover</code> 后面的处理逻辑</li>
+</ul>
+<h3 id="都有哪些坑"><a href="#都有哪些坑" class="headerlink" title="都有哪些坑"></a>都有哪些坑</h3><p>前面提到，<code>panic</code> 函数主要用于主动触发异常。我们在实现业务代码的时候，在程序启动阶段，如果资源初始化出错，可以主动调用 <code>panic</code> 立即结束程序。对于新手来说，这没什么问题，很容易做到。</p>
+<p>但是，现实往往是残酷的—— Go 的 <code>runtime</code> 代码中很多地方都调用了 <code>panic</code> 函数，对于不了解 Go 底层实现的新人来说，这无疑是挖了一堆深坑。如果不熟悉这些坑，是不可能写出健壮的 Go 代码。</p>
+<p>接下来，笔者给大家细数下都有哪些坑。</p>
+<ul>
+<li><h4 id="数组-slice-下标越界"><a href="#数组-slice-下标越界" class="headerlink" title="数组 ( slice ) 下标越界"></a>数组 ( slice ) 下标越界</h4></li>
+</ul>
+<p>这个比较好理解，对于静态类型语言，数组下标越界是致命错误。如下代码可以验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            fmt.Println(err)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">var</span> bar = []<span class="keyword">int</span>&#123;<span class="number">1</span>&#125;</span><br><span class="line">    fmt.Println(bar[<span class="number">1</span>])</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    foo()</span><br><span class="line">    fmt.Println(<span class="string">"exit"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">runtime error: index out of range</span><br><span class="line"><span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+<p>因为代码中用了 <code>recover</code> ，程序得以恢复，输出 <code>exit</code>。</p>
+<p>如果将 <code>recover</code> 那几行注释掉，将会输出如下日志：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">panic: runtime error: index out of range</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.foo()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:14 +0x3e</span><br><span class="line">main.main()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:18 +0x22</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+<ul>
+<li><h4 id="访问未初始化的指针或-nil-指针"><a href="#访问未初始化的指针或-nil-指针" class="headerlink" title="访问未初始化的指针或 nil 指针"></a>访问未初始化的指针或 nil 指针</h4></li>
+</ul>
+<p>对于有 c/c++ 开发经验的人来说，这个很好理解。但对于没用过指针的新手来说，这是最常见的一类错误。<br>如下代码可以验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span></span>&#123;</span><br><span class="line">  <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">      <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">          fmt.Println(err)</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;()</span><br><span class="line">  <span class="keyword">var</span> bar *<span class="keyword">int</span></span><br><span class="line">  fmt.Println(*bar)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">  foo()</span><br><span class="line">  fmt.Println(<span class="string">"exit"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">runtime error: invalid memory address or nil pointer dereference</span><br><span class="line"><span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+<p>如果将 <code>recover</code> 那几行代码注释掉，则会输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">panic: runtime error: invalid memory address or nil pointer dereference</span><br><span class="line">[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x4869ff]</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.foo()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:14 +0x3f</span><br><span class="line">main.main()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:18 +0x22</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+<ul>
+<li><h4 id="试图往已经-close-的-chan-里发送数据"><a href="#试图往已经-close-的-chan-里发送数据" class="headerlink" title="试图往已经 close 的 chan 里发送数据"></a>试图往已经 close 的 <code>chan</code> 里发送数据</h4></li>
+</ul>
+<p>这也是刚学用 <code>chan</code> 的新手容易犯的错误。如下代码可以验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span></span>&#123;</span><br><span class="line">  <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">      <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">          fmt.Println(err)</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;()</span><br><span class="line">  <span class="keyword">var</span> bar = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">1</span>)</span><br><span class="line">  <span class="built_in">close</span>(bar)</span><br><span class="line">  bar&lt;<span class="number">-1</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">  foo()</span><br><span class="line">  fmt.Println(<span class="string">"exit"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">send on closed channel</span><br><span class="line"><span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+<p>如果注释掉 recover ，将输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">panic: send on closed channel</span><br><span class="line"></span><br><span class="line">goroutine 1 [running]:</span><br><span class="line">main.foo()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:15 +0x83</span><br><span class="line">main.main()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:19 +0x22</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+<p>源码处理逻辑在 <code>src/runtime/chan.go</code> 的 <code>chansend</code> 函数中，如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// src/runtime/chan.go 第 269 行</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">  * generic single channel send/recv</span></span><br><span class="line"><span class="comment">  * If block is not nil,</span></span><br><span class="line"><span class="comment">  * then the protocol will not</span></span><br><span class="line"><span class="comment">  * sleep but return if it could</span></span><br><span class="line"><span class="comment">  * not complete.</span></span><br><span class="line"><span class="comment">  *</span></span><br><span class="line"><span class="comment">  * sleep can wake up with g.param == nil</span></span><br><span class="line"><span class="comment">  * when a channel involved in the sleep has</span></span><br><span class="line"><span class="comment">  * been closed.  it is easiest to loop and re-run</span></span><br><span class="line"><span class="comment">  * the operation; we'll see that it's now closed.</span></span><br><span class="line"><span class="comment">  */</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">chansend</span><span class="params">(c *hchan, ep unsafe.Pointer, block <span class="keyword">bool</span>, callerpc <span class="keyword">uintptr</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> c == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> !block &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">        &#125;</span><br><span class="line">        gopark(<span class="literal">nil</span>, <span class="literal">nil</span>, waitReasonChanSendNilChan, traceEvGoStop, <span class="number">2</span>)</span><br><span class="line">        throw(<span class="string">"unreachable"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> debugChan &#123;</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">"chansend: chan="</span>, c, <span class="string">"\n"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">        racereadpc(c.raceaddr(), callerpc, funcPC(chansend))</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Fast path: check for failed non-blocking operation without acquiring the lock.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="comment">// After observing that the channel is not closed, we observe that the channel is</span></span><br><span class="line">    <span class="comment">// not ready for sending. Each of these observations is a single word-sized read</span></span><br><span class="line">    <span class="comment">// (first c.closed and second c.recvq.first or c.qcount depending on kind of channel).</span></span><br><span class="line">    <span class="comment">// Because a closed channel cannot transition from 'ready for sending' to</span></span><br><span class="line">    <span class="comment">// 'not ready for sending', even if the channel is closed between the two observations,</span></span><br><span class="line">    <span class="comment">// they imply a moment between the two when the channel was both not yet closed</span></span><br><span class="line">    <span class="comment">// and not ready for sending. We behave as if we observed the channel at that moment,</span></span><br><span class="line">    <span class="comment">// and report that the send cannot proceed.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="comment">// It is okay if the reads are reordered here: if we observe that the channel is not</span></span><br><span class="line">    <span class="comment">// ready for sending and then observe that it is not closed, that implies that the</span></span><br><span class="line">    <span class="comment">// channel wasn't closed during the first observation.</span></span><br><span class="line">    <span class="keyword">if</span> !block &amp;&amp; c.closed == <span class="number">0</span> &amp;&amp; ((c.dataqsiz == <span class="number">0</span> &amp;&amp; c.recvq.first == <span class="literal">nil</span>) ||</span><br><span class="line">        (c.dataqsiz &gt; <span class="number">0</span> &amp;&amp; c.qcount == c.dataqsiz)) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> t0 <span class="keyword">int64</span></span><br><span class="line">    <span class="keyword">if</span> blockprofilerate &gt; <span class="number">0</span> &#123;</span><br><span class="line">        t0 = cputicks()</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    lock(&amp;c.lock)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c.closed != <span class="number">0</span> &#123;</span><br><span class="line">        unlock(&amp;c.lock)</span><br><span class="line">        <span class="built_in">panic</span>(plainError(<span class="string">"send on closed channel"</span>))</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> sg := c.recvq.dequeue(); sg != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="comment">// Found a waiting receiver. We pass the value we want to send</span></span><br><span class="line">        <span class="comment">// directly to the receiver, bypassing the channel buffer (if any).</span></span><br><span class="line">        send(c, sg, ep, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; unlock(&amp;c.lock) &#125;, <span class="number">3</span>)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c.qcount &lt; c.dataqsiz &#123;</span><br><span class="line">        <span class="comment">// Space is available in the channel buffer. Enqueue the element to send.</span></span><br><span class="line">        qp := chanbuf(c, c.sendx)</span><br><span class="line">        <span class="keyword">if</span> raceenabled &#123;</span><br><span class="line">            raceacquire(qp)</span><br><span class="line">            racerelease(qp)</span><br><span class="line">        &#125;</span><br><span class="line">        typedmemmove(c.elemtype, qp, ep)</span><br><span class="line">        c.sendx++</span><br><span class="line">        <span class="keyword">if</span> c.sendx == c.dataqsiz &#123;</span><br><span class="line">            c.sendx = <span class="number">0</span></span><br><span class="line">        &#125;</span><br><span class="line">        c.qcount++</span><br><span class="line">        unlock(&amp;c.lock)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> !block &#123;</span><br><span class="line">        unlock(&amp;c.lock)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Block on the channel. Some receiver will complete our operation for us.</span></span><br><span class="line">    gp := getg()</span><br><span class="line">    mysg := acquireSudog()</span><br><span class="line">    mysg.releasetime = <span class="number">0</span></span><br><span class="line">    <span class="keyword">if</span> t0 != <span class="number">0</span> &#123;</span><br><span class="line">        mysg.releasetime = <span class="number">-1</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// No stack splits between assigning elem and enqueuing mysg</span></span><br><span class="line">    <span class="comment">// on gp.waiting where copystack can find it.</span></span><br><span class="line">    mysg.elem = ep</span><br><span class="line">    mysg.waitlink = <span class="literal">nil</span></span><br><span class="line">    mysg.g = gp</span><br><span class="line">    mysg.isSelect = <span class="literal">false</span></span><br><span class="line">    mysg.c = c</span><br><span class="line">    gp.waiting = mysg</span><br><span class="line">    gp.param = <span class="literal">nil</span></span><br><span class="line">    c.sendq.enqueue(mysg)</span><br><span class="line">    goparkunlock(&amp;c.lock, waitReasonChanSend, traceEvGoBlockSend, <span class="number">3</span>)</span><br><span class="line">    <span class="comment">// Ensure the value being sent is kept alive until the</span></span><br><span class="line">    <span class="comment">// receiver copies it out. The sudog has a pointer to the</span></span><br><span class="line">    <span class="comment">// stack object, but sudogs aren't considered as roots of the</span></span><br><span class="line">    <span class="comment">// stack tracer.</span></span><br><span class="line">    KeepAlive(ep)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// someone woke us up.</span></span><br><span class="line">    <span class="keyword">if</span> mysg != gp.waiting &#123;</span><br><span class="line">        throw(<span class="string">"G waiting list is corrupted"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    gp.waiting = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">if</span> gp.param == <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> c.closed == <span class="number">0</span> &#123;</span><br><span class="line">            throw(<span class="string">"chansend: spurious wakeup"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="built_in">panic</span>(plainError(<span class="string">"send on closed channel"</span>))</span><br><span class="line">    &#125;</span><br><span class="line">    gp.param = <span class="literal">nil</span></span><br><span class="line">    <span class="keyword">if</span> mysg.releasetime &gt; <span class="number">0</span> &#123;</span><br><span class="line">        blockevent(mysg.releasetime-t0, <span class="number">2</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    mysg.c = <span class="literal">nil</span></span><br><span class="line">    releaseSudog(mysg)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><h4 id="并发读写相同-map"><a href="#并发读写相同-map" class="headerlink" title="并发读写相同 map"></a>并发读写相同 map</h4></li>
+</ul>
+<p>对于刚学并发编程的同学来说，并发读写 map 也是很容易遇到的问题。如下代码可以验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span></span>&#123;</span><br><span class="line">  <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">      <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">          fmt.Println(err)</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;()</span><br><span class="line">  <span class="keyword">var</span> bar = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">int</span>)</span><br><span class="line">  <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">      <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">          <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">              fmt.Println(err)</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;()</span><br><span class="line">      <span class="keyword">for</span>&#123;</span><br><span class="line">          _ = bar[<span class="number">1</span>]</span><br><span class="line">      &#125;</span><br><span class="line">  &#125;()</span><br><span class="line">  <span class="keyword">for</span>&#123;</span><br><span class="line">      bar[<span class="number">1</span>]=<span class="number">1</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">  foo()</span><br><span class="line">  fmt.Println(<span class="string">"exit"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">fatal error: concurrent map <span class="built_in">read</span> and map write</span><br><span class="line"></span><br><span class="line">goroutine 5 [running]:</span><br><span class="line">runtime.throw(0x4bd8b0, 0x21)</span><br><span class="line">  /home/letian/.gvm/gos/go1.12/src/runtime/panic.go:617 +0x72 fp=0xc00004c780 sp=0xc00004c750 pc=0x427f22</span><br><span class="line">runtime.mapaccess1_fast64(0x49eaa0, 0xc000088180, 0x1, 0xc0000260d8)</span><br><span class="line">  /home/letian/.gvm/gos/go1.12/src/runtime/map_fast64.go:21 +0x1a8 fp=0xc00004c7a8 sp=0xc00004c780 pc=0x40eb58</span><br><span class="line">main.foo.func2(0xc000088180)</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:21 +0x5c fp=0xc00004c7d8 sp=0xc00004c7a8 pc=0x48708c</span><br><span class="line">runtime.goexit()</span><br><span class="line">  /home/letian/.gvm/gos/go1.12/src/runtime/asm_amd64.s:1337 +0x1 fp=0xc00004c7e0 sp=0xc00004c7d8 pc=0x450e51</span><br><span class="line">created by main.foo</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:14 +0x68</span><br><span class="line"></span><br><span class="line">goroutine 1 [runnable]:</span><br><span class="line">main.foo()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:25 +0x8b</span><br><span class="line">main.main()</span><br><span class="line">  /home/letian/work/go/src/<span class="built_in">test</span>/test.go:30 +0x22</span><br><span class="line"><span class="built_in">exit</span> status 2</span><br></pre></td></tr></table></figure>
+<p>细心的朋友不难发现，输出日志里没有出现我们在程序末尾打印的 <code>exit</code>，而是直接将调用栈打印出来了。查看 <code>src/runtime/map.go</code> 中的代码不难发现这几行：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> h.flags&amp;hashWriting != <span class="number">0</span> &#123;</span><br><span class="line">  throw(<span class="string">"concurrent map read and map write"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与前面提到的几种情况不同，<code>runtime</code> 中调用 <code>throw</code> 函数抛出的异常是无法在业务代码中通过 <code>recover</code> 捕获的，这点最为致命。所以，对于并发读写 map 的地方，应该对 map 加锁。</p>
+<ul>
+<li><h4 id="类型断言"><a href="#类型断言" class="headerlink" title="类型断言"></a>类型断言</h4></li>
+</ul>
+<p>在使用类型断言对 <code>interface</code> 进行类型转换的时候也容易一不小心踩坑，而且这个坑是即使用 <code>interface</code> 有一段时间的人也容易忽略的问题。如下代码可以验证：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">"fmt"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">foo</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">if</span> err := <span class="built_in">recover</span>(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">            fmt.Println(err)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;()</span><br><span class="line">    <span class="keyword">var</span> i <span class="keyword">interface</span>&#123;&#125; = <span class="string">"abc"</span></span><br><span class="line">    _ = i.([]<span class="keyword">string</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    foo()</span><br><span class="line">    fmt.Println(<span class="string">"exit"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">interface conversion: interface &#123;&#125; is string, not []string</span><br><span class="line"><span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+<p>源码在 <code>src/runtime/iface.go</code> 中，如下两个函数：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// panicdottypeE is called when doing an e.(T) conversion and the conversion fails.</span></span><br><span class="line"><span class="comment">// have = the dynamic type we have.</span></span><br><span class="line"><span class="comment">// want = the static type we're trying to convert to.</span></span><br><span class="line"><span class="comment">// iface = the static type we're converting from.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">panicdottypeE</span><span class="params">(have, want, iface *_type)</span></span> &#123;</span><br><span class="line">    <span class="built_in">panic</span>(&amp;TypeAssertionError&#123;iface, have, want, <span class="string">""</span>&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// panicdottypeI is called when doing an i.(T) conversion and the conversion fails.</span></span><br><span class="line"><span class="comment">// Same args as panicdottypeE, but "have" is the dynamic itab we have.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">panicdottypeI</span><span class="params">(have *itab, want, iface *_type)</span></span> &#123;</span><br><span class="line">    <span class="keyword">var</span> t *_type</span><br><span class="line">    <span class="keyword">if</span> have != <span class="literal">nil</span> &#123;</span><br><span class="line">        t = have._type</span><br><span class="line">    &#125;</span><br><span class="line">    panicdottypeE(t, want, iface)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="更多的-panic"><a href="#更多的-panic" class="headerlink" title="更多的 panic"></a>更多的 panic</h2><p>前面提到的只是基本语法中常遇到的几种 <code>panic</code> 场景，Go 标准库中有更多使用 <code>panic</code> 的地方，大家可以在源码中搜索 <code>panic(</code> 找到调用的地方，以免后续用标准库函数的时候踩坑。</p>
+<p>限于篇幅，本文暂不介绍填坑技巧，后面再开其他篇幅逐个介绍。感谢阅读！</p>
+<h2 id="下回预告"><a href="#下回预告" class="headerlink" title="下回预告"></a>下回预告</h2><p>Go 语言踩坑记之 channel 与 goroutine。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>易乐天，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#Go" >
+    <span class="tag-code">Go</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/01/03/contribution/">
+        <span class="nav-arrow">← </span>
+        
+          投稿须知
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/03/02/rpc-achieve/">
+        
+          浅析 RPC 与基本实现
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#Go-语言踩坑记——panic-与-recover"><span class="toc-nav-text">Go 语言踩坑记——panic 与 recover</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#题记"><span class="toc-nav-text">题记</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#初识-panic-和-recover"><span class="toc-nav-text">初识 panic 和 recover</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#深入-panic-和-recover"><span class="toc-nav-text">深入 panic 和 recover</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#源码"><span class="toc-nav-text">源码</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#都有哪些坑"><span class="toc-nav-text">都有哪些坑</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#数组-slice-下标越界"><span class="toc-nav-text">数组 ( slice ) 下标越界</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#访问未初始化的指针或-nil-指针"><span class="toc-nav-text">访问未初始化的指针或 nil 指针</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#试图往已经-close-的-chan-里发送数据"><span class="toc-nav-text">试图往已经 close 的 chan 里发送数据</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#并发读写相同-map"><span class="toc-nav-text">并发读写相同 map</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#类型断言"><span class="toc-nav-text">类型断言</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#更多的-panic"><span class="toc-nav-text">更多的 panic</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#下回预告"><span class="toc-nav-text">下回预告</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/01/20/go-trample-panic-recover/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "Go 语言踩坑记——panic 与 recover",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

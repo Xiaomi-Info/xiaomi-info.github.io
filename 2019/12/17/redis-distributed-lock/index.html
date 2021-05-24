@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      分布式锁的实现之 redis 篇 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>分布式锁的实现之 redis 篇</h2>
+  <p class="post-date">2019-12-17</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="分布式锁的实现之-redis-篇"><a href="#分布式锁的实现之-redis-篇" class="headerlink" title="分布式锁的实现之 redis 篇"></a>分布式锁的实现之 redis 篇</h1><p><strong>[作者简介]</strong> 钟梦浩，信息部订单组研发工程师，目前主要负责小米订单中台业务。</p>
+<h2 id="一、引言"><a href="#一、引言" class="headerlink" title="一、引言"></a>一、引言</h2><p>我们在系统中修改已有数据时，需要先读取，然后进行修改保存，此时很容易遇到并发问题。由于修改和保存不是原子操作，在并发场景下，部分对数据的操作可能会丢失。在单服务器系统我们常用本地锁来避免并发带来的问题，然而，当服务采用集群方式部署时，本地锁无法在多个服务器之间生效，这时候保证数据的一致性就需要分布式锁来实现。</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-01.png">
+<h2 id="二、实现"><a href="#二、实现" class="headerlink" title="二、实现"></a>二、实现</h2><p>Redis 锁主要利用 Redis 的 setnx 命令。</p>
+<ul>
+<li>加锁命令：SETNX key value，当键不存在时，对键进行设置操作并返回成功，否则返回失败。KEY 是锁的唯一标识，一般按业务来决定命名。</li>
+<li>解锁命令：DEL key，通过删除键值对释放锁，以便其他线程可以通过 SETNX 命令来获取锁。</li>
+<li>锁超时：EXPIRE key timeout, 设置 key 的超时时间，以保证即使锁没有被显式释放，锁也可以在一定时间后自动释放，避免资源被永远锁住。</li>
+</ul>
+<p>则加锁解锁伪代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">if (setnx(key, 1) == 1)&#123;</span><br><span class="line">    expire(key, 30)</span><br><span class="line">    try &#123;</span><br><span class="line">        //TODO 业务逻辑</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        del(key)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上述锁实现方式存在一些问题：</p>
+<h3 id="1-SETNX-和-EXPIRE-非原子性"><a href="#1-SETNX-和-EXPIRE-非原子性" class="headerlink" title="1. SETNX 和 EXPIRE 非原子性"></a>1. SETNX 和 EXPIRE 非原子性</h3><p>如果 SETNX 成功，在设置锁超时时间后，服务器挂掉、重启或网络问题等，导致 EXPIRE 命令没有执行，锁没有设置超时时间变成死锁。</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-02.png">
+<p>有很多开源代码来解决这个问题，比如使用 lua 脚本。示例：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (redis.call(<span class="string">'setnx'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">1</span>]) &lt; <span class="number">1</span>)</span><br><span class="line"><span class="keyword">then</span> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"><span class="keyword">end</span>;</span><br><span class="line">redis.call(<span class="string">'expire'</span>, KEYS[<span class="number">1</span>], <span class="built_in">tonumber</span>(ARGV[<span class="number">2</span>]));</span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">// 使用实例</span><br><span class="line">EVAL <span class="string">"if (redis.call('setnx',KEYS[1],ARGV[1]) &lt; 1) then return 0; end; redis.call('expire',KEYS[1],tonumber(ARGV[2])); return 1;"</span> <span class="number">1</span> key value <span class="number">100</span></span><br></pre></td></tr></table></figure>
+<h3 id="2-锁误解除"><a href="#2-锁误解除" class="headerlink" title="2. 锁误解除"></a>2. 锁误解除</h3><p>如果线程 A 成功获取到了锁，并且设置了过期时间 30 秒，但线程 A 执行时间超过了 30 秒，锁过期自动释放，此时线程 B 获取到了锁；随后 A 执行完成，线程 A 使用 DEL 命令来释放锁，但此时线程 B 加的锁还没有执行完成，线程 A 实际释放的线程 B 加的锁。</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-03.png">
+<p>通过在 value 中设置当前线程加锁的标识，在删除之前验证 key 对应的 value 判断锁是否是当前线程持有。可生成一个 UUID 标识当前线程，使用 lua 脚本做验证标识和解锁操作。</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// 加锁</span><br><span class="line">String uuid = UUID.randomUUID().toString().replaceAll(<span class="string">"-"</span>,<span class="string">""</span>);</span><br><span class="line">SET key uuid NX EX <span class="number">30</span></span><br><span class="line">// 解锁</span><br><span class="line"><span class="keyword">if</span> (redis.call(<span class="string">'get'</span>, KEYS[<span class="number">1</span>]) == ARGV[<span class="number">1</span>])</span><br><span class="line">    <span class="keyword">then</span> <span class="keyword">return</span> redis.call(<span class="string">'del'</span>, KEYS[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">else</span> <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+<h3 id="3-超时解锁导致并发"><a href="#3-超时解锁导致并发" class="headerlink" title="3. 超时解锁导致并发"></a>3. 超时解锁导致并发</h3><p>如果线程 A 成功获取锁并设置过期时间 30 秒，但线程 A 执行时间超过了 30 秒，锁过期自动释放，此时线程 B 获取到了锁，线程 A 和线程 B 并发执行。</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-04.png">
+<p>A、B 两个线程发生并发显然是不被允许的，一般有两种方式解决该问题：</p>
+<ul>
+<li>将过期时间设置足够长，确保代码逻辑在锁释放之前能够执行完成。</li>
+<li>为获取锁的线程增加守护线程，为将要过期但未释放的锁增加有效时间。</li>
+</ul>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-05.png">
+<h3 id="4-不可重入"><a href="#4-不可重入" class="headerlink" title="4. 不可重入"></a>4. 不可重入</h3><p>当线程在持有锁的情况下再次请求加锁，如果一个锁支持一个线程多次加锁，那么这个锁就是可重入的。如果一个不可重入锁被再次加锁，由于该锁已经被持有，再次加锁会失败。Redis 可通过对锁进行重入计数，加锁时加 1，解锁时减 1，当计数归 0 时释放锁。</p>
+<p>在本地记录记录重入次数，如 Java 中使用 ThreadLocal 进行重入次数统计，简单示例代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ThreadLocal&lt;Map&lt;String, Integer&gt;&gt; LOCKERS = ThreadLocal.withInitial(HashMap::<span class="keyword">new</span>);</span><br><span class="line"><span class="comment">// 加锁</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">lock</span><span class="params">(String key)</span> </span>&#123;</span><br><span class="line">  Map&lt;String, Integer&gt; lockers = LOCKERS.get();</span><br><span class="line">  <span class="keyword">if</span> (lockers.containsKey(key)) &#123;</span><br><span class="line">    lockers.put(key, lockers.get(key) + <span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (SET key uuid NX EX <span class="number">30</span>) &#123;</span><br><span class="line">      lockers.put(key, <span class="number">1</span>);</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 解锁</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unlock</span><span class="params">(String key)</span> </span>&#123;</span><br><span class="line">  Map&lt;String, Integer&gt; lockers = LOCKERS.get();</span><br><span class="line">  <span class="keyword">if</span> (lockers.getOrDefault(key, <span class="number">0</span>) &lt;= <span class="number">1</span>) &#123;</span><br><span class="line">    lockers.remove(key);</span><br><span class="line">    DEL key</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    lockers.put(key, lockers.get(key) - <span class="number">1</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>本地记录重入次数虽然高效，但如果考虑到过期时间和本地、Redis 一致性的问题，就会增加代码的复杂性。另一种方式是 Redis Map 数据结构来实现分布式锁，既存锁的标识也对重入次数进行计数。Redission 加锁示例：</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">// 如果 lock_key 不存在</span><br><span class="line"><span class="keyword">if</span> (redis.call(<span class="string">'exists'</span>, KEYS[<span class="number">1</span>]) == <span class="number">0</span>)</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">    // 设置 lock_key 线程标识 <span class="number">1</span> 进行加锁</span><br><span class="line">    redis.call(<span class="string">'hset'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">2</span>], <span class="number">1</span>);</span><br><span class="line">    // 设置过期时间</span><br><span class="line">    redis.call(<span class="string">'pexpire'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">1</span>]);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>;</span><br><span class="line">    <span class="keyword">end</span>;</span><br><span class="line">// 如果 lock_key 存在且线程标识是当前欲加锁的线程标识</span><br><span class="line"><span class="keyword">if</span> (redis.call(<span class="string">'hexists'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">2</span>]) == <span class="number">1</span>)</span><br><span class="line">    // 自增</span><br><span class="line">    <span class="keyword">then</span> redis.call(<span class="string">'hincrby'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">2</span>], <span class="number">1</span>);</span><br><span class="line">    // 重置过期时间</span><br><span class="line">    redis.call(<span class="string">'pexpire'</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">1</span>]);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>;</span><br><span class="line">    <span class="keyword">end</span>;</span><br><span class="line">// 如果加锁失败，返回锁剩余时间</span><br><span class="line"><span class="keyword">return</span> redis.call(<span class="string">'pttl'</span>, KEYS[<span class="number">1</span>]);</span><br></pre></td></tr></table></figure>
+<h3 id="5-无法等待锁释放"><a href="#5-无法等待锁释放" class="headerlink" title="5. 无法等待锁释放"></a>5. 无法等待锁释放</h3><p>上述命令执行都是立即返回的，如果客户端可以等待锁释放就无法使用。</p>
+<ul>
+<li>可以通过客户端轮询的方式解决该问题，当未获取到锁时，等待一段时间重新获取锁，直到成功获取锁或等待超时。这种方式比较消耗服务器资源，当并发量比较大时，会影响服务器的效率。</li>
+<li>另一种方式是使用 Redis 的发布订阅功能，当获取锁失败时，订阅锁释放消息，获取锁成功后释放时，发送锁释放消息。如下：</li>
+</ul>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-06.png">
+<h2 id="三、集群"><a href="#三、集群" class="headerlink" title="三、集群"></a>三、集群</h2><h3 id="1-主备切换"><a href="#1-主备切换" class="headerlink" title="1. 主备切换"></a>1. 主备切换</h3><p>为了保证 Redis 的可用性，一般采用主从方式部署。主从数据同步有异步和同步两种方式，Redis 将指令记录在本地内存 buffer 中，然后异步将 buffer 中的指令同步到从节点，从节点一边执行同步的指令流来达到和主节点一致的状态，一边向主节点反馈同步情况。</p>
+<p>在包含主从模式的集群部署方式中，当主节点挂掉时，从节点会取而代之，但客户端无明显感知。当客户端 A 成功加锁，指令还未同步，此时主节点挂掉，从节点提升为主节点，新的主节点没有锁的数据，当客户端 B 加锁时就会成功。</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-07.png">
+<h3 id="2-集群脑裂"><a href="#2-集群脑裂" class="headerlink" title="2. 集群脑裂"></a>2. 集群脑裂</h3><p>集群脑裂指因为网络问题，导致 Redis master 节点跟 slave 节点和 sentinel 集群处于不同的网络分区，因为 sentinel 集群无法感知到 master 的存在，所以将 slave 节点提升为 master 节点，此时存在两个不同的 master 节点。Redis Cluster 集群部署方式同理。</p>
+<p>当不同的客户端连接不同的 master 节点时，两个客户端可以同时拥有同一把锁。如下：</p>
+<img src="/2019/12/17/redis-distributed-lock/redis-lock-08.png">
+<h2 id="四、结语"><a href="#四、结语" class="headerlink" title="四、结语"></a>四、结语</h2><p>Redis 以其高性能著称，但使用其实现分布式锁来解决并发仍存在一些困难。Redis 分布式锁只能作为一种缓解并发的手段，如果要完全解决并发问题，仍需要数据库的防并发手段。</p>
+<p>参考：</p>
+<p> 1.“Redis 分布式锁的正确实现方式（ Java 版 ）”  <a href="https://mp.weixin.qq.com/s/qJK61ew0kCExvXrqb7-RSg" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/qJK61ew0kCExvXrqb7-RSg</a><br> 2.“漫画：什么是分布式锁？” <a href="https://mp.weixin.qq.com/s/8fdBKAyHZrfHmSajXT_dnA" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/8fdBKAyHZrfHmSajXT_dnA</a><br> 3.“搞懂“分布式锁”，看这篇文章就对了” <a href="https://mp.weixin.qq.com/s/hoZB0wdwXfG3ECKlzjtPdw" target="_blank" rel="noopener">https://mp.weixin.qq.com/s/hoZB0wdwXfG3ECKlzjtPdw</a><br> 4.《Redis 深度历险：核心原理与应用实践》<br> 5.《逆流而上：阿里巴巴技术成长之路》</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>钟梦浩，小米信息部订单组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#redis" >
+    <span class="tag-code">redis</span>
+  </a>
+
+  <a href="/tags#分布式锁" >
+    <span class="tag-code">分布式锁</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/12/06/nsq-src/">
+        <span class="nav-arrow">← </span>
+        
+          走进 NSQ 源码细节
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/12/19/theadpool-rejected-task/">
+        
+          一次线上线程池任务问题处理历程
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#分布式锁的实现之-redis-篇"><span class="toc-nav-text">分布式锁的实现之 redis 篇</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#一、引言"><span class="toc-nav-text">一、引言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#二、实现"><span class="toc-nav-text">二、实现</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#1-SETNX-和-EXPIRE-非原子性"><span class="toc-nav-text">1. SETNX 和 EXPIRE 非原子性</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-锁误解除"><span class="toc-nav-text">2. 锁误解除</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#3-超时解锁导致并发"><span class="toc-nav-text">3. 超时解锁导致并发</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#4-不可重入"><span class="toc-nav-text">4. 不可重入</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#5-无法等待锁释放"><span class="toc-nav-text">5. 无法等待锁释放</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#三、集群"><span class="toc-nav-text">三、集群</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#1-主备切换"><span class="toc-nav-text">1. 主备切换</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#2-集群脑裂"><span class="toc-nav-text">2. 集群脑裂</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#四、结语"><span class="toc-nav-text">四、结语</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/12/17/redis-distributed-lock/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "分布式锁的实现之 redis 篇",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

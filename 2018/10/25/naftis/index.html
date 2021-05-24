@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      小米正式开源 Istio 管理面板 Naftis | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>小米正式开源 Istio 管理面板 Naftis</h2>
+  <p class="post-date">2018-10-25</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="小米正式开源-Istio-管理面板-Naftis"><a href="#小米正式开源-Istio-管理面板-Naftis" class="headerlink" title="小米正式开源 Istio 管理面板 Naftis"></a>小米正式开源 Istio 管理面板 Naftis</h1><p>近年来服务网格（Service Mesh）已成为各大公司关注重点，各大公司纷纷开始调研 Service Mesh 相关架构。作为 Service Mesh 中的佼佼者，Istio 诞生之初就已吸引众多目光。</p>
+<p>作为基础设施层，Istio 有优秀的服务治理能力。但使用 Istio 进行服务治理时，开发者需通过 istioctl 或 kubectl 工具在终端中进行操作，这种方式目前存在一些问题，举例如下：</p>
+<ol>
+<li>Istio 要求用户熟练掌握 istioctl 工具的数百种指令，有较高的学习成本。</li>
+<li>Istio 进行服务治理时需要的 yaml 配置文件的数量非常庞大，如何配置和管理这些配置文件，也是个难题。</li>
+<li>Istio 的 istioctl 工具没有用户权限的约束，存在一定安全隐患，无法适应大公司严格的权限管理需求。</li>
+<li>Istio 的 istioctl 工具不支持任务回滚等需求，在执行任务出错的情况下，无法快速回滚到上一个正确版本。</li>
+</ol>
+<p>为了解决这些问题，小米信息部武汉研发中心为 Istio 研发出了一套友好易用的 dashboard —— Naftis 。</p>
+<blockquote>
+<p>Naftis 意为水手，和 Istio （帆船）意境契合。作为 dashboard ， Naftis 能使用户像水手一样熟练掌控和管理 Istio 。</p>
+</blockquote>
+<p><a href="https://github.com/xiaomi/naftis" target="_blank" rel="noopener">https://github.com/xiaomi/naftis</a></p>
+<p>Naftis 通过任务模板的方式来帮助用户更轻松地执行 Istio 任务。用户可以在 Naftis 中定义自己的任务模板，并通过填充变量来构造单个或多个任务实例，从而完成各种服务治理功能。</p>
+<p>Naftis 提供了如下特性：</p>
+<ul>
+<li>集成了一些常用的监控指标，包括 40X、50X 错误趋势等。</li>
+<li>提供了可定制的任务模板的支持。</li>
+<li>支持回滚指定某一任务。</li>
+<li>提供了 Istio 状态诊断功能，可实时查看 Istio 的 Services 和 Pod 状态。</li>
+<li>开箱即用，通过 kubectl 指令一键部署。</li>
+</ul>
+<h2 id="依赖"><a href="#依赖" class="headerlink" title="依赖"></a>依赖</h2><p>目前 Naftis 仅支持 Kubernetes，不支持其他容器调度平台。</p>
+<ul>
+<li>Istio &gt; 1.0</li>
+<li>Kubernetes&gt;= 1.9.0Jf</li>
+<li>HIUI &gt;= 1.0.0</li>
+</ul>
+<p>Naftis 后端采用 Go 编写，通过 Kubernetes 和 Istio 的 CRD 接口对 Istio 资源进行操作；<br>前端则采用了同样由小米开源的基于 React 的前端组件 HIUI，HIUI 简洁优雅，有一定 React 基础的前端开发者能迅速上手：</p>
+<p><a href="https://github.com/xiaomi/hiui" target="_blank" rel="noopener">https://github.com/xiaomi/hiui</a></p>
+<h2 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">kubectl create namespace naftis &amp;&amp; kubectl apply -n naftis -f mysql.yaml &amp;&amp; kubectl apply -n naftis -f naftis.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过端口转发的方式访问 Naftis</span></span><br><span class="line">kubectl -n naftis port-forward $(kubectl -n naftis get Pod -l app=naftis -ui -o jsonpath=<span class="string">'&#123;.items[0].metadata.name&#125;'</span>) 8080:80 &amp;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打开浏览器访问 http://localhost:8080，默认用户名和密码分别为 admin、admin。</span></span><br></pre></td></tr></table></figure>
+<h2 id="详细的部署流程"><a href="#详细的部署流程" class="headerlink" title="详细的部署流程"></a>详细的部署流程</h2><h3 id="Kubernetes-集群内运行"><a href="#Kubernetes-集群内运行" class="headerlink" title="Kubernetes 集群内运行"></a>Kubernetes 集群内运行</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建 Naftis 命名空间</span></span><br><span class="line">$ kubectl create namespace  naftis</span><br><span class="line"></span><br><span class="line"><span class="comment"># 确认 Naftis 命名空间已创建</span></span><br><span class="line">$ kubectl get namespace  naftis</span><br><span class="line">NAME           STATUS    AGE</span><br><span class="line">naftis          Active    18m</span><br><span class="line"></span><br><span class="line"><span class="comment"># 部署 Naftis MySQL 服务</span></span><br><span class="line">$ kubectl apply -n  naftis  -f mysql.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 确认 MySQL 已部署</span></span><br><span class="line">$ kubectl get svc -n naftis</span><br><span class="line">NAME                           READY     STATUS    RESTARTS   AGE</span><br><span class="line">naftis-mysql-c78f99d6c-kblbq   1/1       Running   0          9s</span><br><span class="line">naftis-mysql-test              1/1       Running   0          10s</span><br><span class="line"></span><br><span class="line"><span class="comment"># 部署 Naftis API和 UI 服务</span></span><br><span class="line">$ kubectl apply -n naftis -f naftis.yaml</span><br><span class="line"></span><br><span class="line"><span class="comment"># 确认 Naftis 所有的服务已经正确定义并正常运行中</span></span><br><span class="line">$ kubectl get svc -n naftis</span><br><span class="line">NAME           TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE</span><br><span class="line">naftis-api     ClusterIP      10.233.3.144    &lt;none&gt;        50000/TCP      7s</span><br><span class="line">naftis-mysql   ClusterIP      10.233.57.230   &lt;none&gt;        3306/TCP       55s</span><br><span class="line">naftis-ui      LoadBalancer   10.233.18.125   &lt;pending&gt;     80:31286/TCP   6s</span><br><span class="line"></span><br><span class="line">$ kubectl get  Pod  -n  naftis</span><br><span class="line">NAME                           READY     STATUS    RESTARTS   AGE</span><br><span class="line">naftis-api-0                   1/2       Running   0          19s</span><br><span class="line">naftis-mysql-c78f99d6c-kblbq   1/1       Running   0          1m</span><br><span class="line">naftis-mysql-test              1/1       Running   0          1m</span><br><span class="line">naftis-ui-69f7d75f47-4jzwz     1/1       Running   0          19s</span><br><span class="line"></span><br><span class="line"><span class="comment"># 端口转发访问 Naftis</span></span><br><span class="line">kubectl -n naftis port-forward $(kubectl -n naftis get Pod -l app=naftis-ui -o jsonpath=<span class="string">'&#123;.items[0].metadata.name&#125;'</span>) 8080:80 &amp;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打开浏览器，访问 http://localhost:8080 即可。默认用户名和密码分别为 admin、admin。</span></span><br></pre></td></tr></table></figure>
+<h3 id="本地运行"><a href="#本地运行" class="headerlink" title="本地运行"></a>本地运行</h3><h4 id="数据移植"><a href="#数据移植" class="headerlink" title="数据移植"></a>数据移植</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 执行 sql语句</span></span><br><span class="line">mysql&gt; <span class="built_in">source</span> ./tool/naftis.sql;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将 in-local.toml 中的数据库的 DSN 配置替换成本地数据库实例的 DSN。</span></span><br></pre></td></tr></table></figure>
+<h3 id="启动-API-服务"><a href="#启动-API-服务" class="headerlink" title="启动 API 服务"></a>启动 API 服务</h3><ul>
+<li>Linux</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">make build &amp;&amp; ./bin/naftis-api start -c config/<span class="keyword">in</span>-local.toml</span><br></pre></td></tr></table></figure>
+<p>或</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./run</span><br></pre></td></tr></table></figure>
+<ul>
+<li>Mac OS</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GOOS=darwin GOARCH=amd64 make build &amp;&amp; ./bin/naftis-api start -c config/<span class="keyword">in</span>-local.toml</span><br></pre></td></tr></table></figure>
+<p>或</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GOOS=darwin GOARCH=amd64 ./run</span><br></pre></td></tr></table></figure>
+<h4 id="配置-Nginx-代理"><a href="#配置-Nginx-代理" class="headerlink" title="配置 Nginx 代理"></a>配置 Nginx 代理</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp tool/naftis.conf &lt;your-nginx-conf-directory&gt;/naftis.conf</span><br><span class="line"><span class="comment"># 酌情修改 naftis.conf 文件并 reload nginx</span></span><br></pre></td></tr></table></figure>
+<h4 id="启动前端-Node-代理"><a href="#启动前端-Node-代理" class="headerlink" title="启动前端 Node 代理"></a>启动前端 Node 代理</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> src/ui</span><br><span class="line">npm install</span><br><span class="line">npm run dev</span><br><span class="line"></span><br><span class="line"><span class="comment"># 打开浏览器访问 http://localhost:5200。</span></span><br></pre></td></tr></table></figure>
+<h2 id="预览"><a href="#预览" class="headerlink" title="预览"></a>预览</h2><h3 id="dashboard"><a href="#dashboard" class="headerlink" title="dashboard"></a>dashboard</h3><p>dashboard 页面集成了一些常用的图表，比如请求成功率、4XX 请求数量等。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzdo15j20zk0j3gp9.jpg" alt="集成了一些常用的图表，比如请求成功率、4XX请求数量等"></p>
+<h3 id="服务管理"><a href="#服务管理" class="headerlink" title="服务管理"></a>服务管理</h3><h4 id="服务详情"><a href="#服务详情" class="headerlink" title="服务详情"></a>服务详情</h4><p>服务详情页面可以查看查看已部署到 Kubernetes 中服务信息。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzlkpaj20zk0sn798.jpg" alt="查看已部署到k8s中服务信息"></p>
+<h4 id="服务-Pod-和拓扑图等"><a href="#服务-Pod-和拓扑图等" class="headerlink" title="服务 Pod 和拓扑图等"></a>服务 Pod 和拓扑图等</h4><p>服务详情页面可以查看指定服务 Pod 和拓扑图等信息。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzdu3kj20zk0tg78s.jpg" alt=" Services - Pod "></p>
+<h3 id="任务模板管理"><a href="#任务模板管理" class="headerlink" title="任务模板管理"></a>任务模板管理</h3><h4 id="任务模板列表"><a href="#任务模板列表" class="headerlink" title="任务模板列表"></a>任务模板列表</h4><p>任务模板列表也可以查看已经添加好的任务模板卡片列表。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpze4dxj20zk0hqad7.jpg" alt="任务模板列表"></p>
+<h4 id="查看指定模板"><a href="#查看指定模板" class="headerlink" title="查看指定模板"></a>查看指定模板</h4><p>点击“查看模板”可以查看指定模板信息。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzgotbj20zk0io417.jpg" alt="查看指定模板"></p>
+<h4 id="新增模板"><a href="#新增模板" class="headerlink" title="新增模板"></a>新增模板</h4><p>点击“新增模板”可以向系统中新增自定义模板。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzk3gkj20zk0ion0d.jpg" alt="新增模板"></p>
+<h4 id="创建任务"><a href="#创建任务" class="headerlink" title="创建任务"></a>创建任务</h4><p>初始化变量值。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzcuinj20zk0iota3.jpg" alt="创建任务-第一步"></p>
+<p>确认变量值。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzibuqj20zk0ioabm.jpg" alt="创建任务-第二步"></p>
+<p>提交创建任务的分步表单。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzifhzj20zk0ix75v.jpg" alt="创建任务-第三步"></p>
+<h4 id="Istio-诊断"><a href="#Istio-诊断" class="headerlink" title="Istio 诊断"></a>Istio 诊断</h4><p>Istio 诊断页面可以查看 Istio Service 和 Pod 状态。<br><img src="https://ww1.sinaimg.cn/large/889d06cbgy1fwjbpzmzflj20zk0v5dlf.jpg" alt="查看 Istio 状态"></p>
+<h2 id="Docker-镜像"><a href="#Docker-镜像" class="headerlink" title="Docker 镜像"></a>Docker 镜像</h2><p>Naftis 的 API 和 UI 镜像已经发布到 Docker Hub 上，见 <a href="https://hub.docker.com/r/sevennt/naftis-api/" target="_blank" rel="noopener">api</a> 和 <a href="https://hub.docker.com/r/sevennt/naftis-ui/" target="_blank" rel="noopener">ui</a>。</p>
+<h2 id="开发者指南"><a href="#开发者指南" class="headerlink" title="开发者指南"></a>开发者指南</h2><h3 id="获取源码"><a href="#获取源码" class="headerlink" title="获取源码"></a>获取源码</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get github.com/xiaomi/naftis</span><br></pre></td></tr></table></figure>
+<h3 id="配置环境变量"><a href="#配置环境变量" class="headerlink" title="配置环境变量"></a>配置环境变量</h3><p>将下述环境变量添加到 <code>~/.profile</code> 。我们强烈推荐通过 <a href="https://github.com/kennethreitz/autoenv" target="_blank" rel="noopener">autoenv</a> 来配置环境变量。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 根据环境改变 GOOS 和 GOARCH 变量</span></span><br><span class="line"><span class="built_in">export</span> GOOS=<span class="string">"linux"</span>   <span class="comment"># 或替换成 "darwin"</span></span><br><span class="line"><span class="built_in">export</span> GOARCH=<span class="string">"amd64"</span> <span class="comment"># 或替换成 "386"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 把 USER 修改成你自己的 DockerHub 用户名</span></span><br><span class="line"><span class="built_in">export</span> USER=<span class="string">"sevennt"</span></span><br><span class="line"><span class="built_in">export</span> HUB=<span class="string">"docker.io/<span class="variable">$USER</span>"</span></span><br></pre></td></tr></table></figure>
+<p>如果你使用 <a href="https://github.com/kennethreitz/autoenv" target="_blank" rel="noopener">autoenv</a>，则输入 <code>cd .</code> 来使环境变量生效。</p>
+<h3 id="Go-依赖"><a href="#Go-依赖" class="headerlink" title="Go 依赖"></a>Go 依赖</h3><p>我们目前使用 <a href="https://github.com/golang/dep" target="_blank" rel="noopener">dep</a> 管理依赖。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装 dep</span></span><br><span class="line">go get -u github.com/golang/dep</span><br><span class="line">dep ensure -v <span class="comment"># 安装 Go 依赖</span></span><br></pre></td></tr></table></figure>
+<h3 id="代码风格"><a href="#代码风格" class="headerlink" title="代码风格"></a>代码风格</h3><ul>
+<li><a href="https://github.com/golang/go/wiki/CodeReviewComments" target="_blank" rel="noopener">Go</a></li>
+<li><a href="https://standardjs.com/" target="_blank" rel="noopener">React</a></li>
+</ul>
+<h2 id="其他指令"><a href="#其他指令" class="headerlink" title="其他指令"></a>其他指令</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">make                 <span class="comment"># 编译所有 targets</span></span><br><span class="line"></span><br><span class="line">make build           <span class="comment"># 编译 Go 二进制文件、前端静态资源、Kubernetes清单</span></span><br><span class="line">make build.api       <span class="comment"># 编译 Go 二进制文件</span></span><br><span class="line">make build.ui        <span class="comment"># 编译前端静态资源</span></span><br><span class="line">make build.manifest  <span class="comment"># 编译Kubernetes清单</span></span><br><span class="line"></span><br><span class="line">make fmt   <span class="comment"># 格式化 Go 代码</span></span><br><span class="line">make lint  <span class="comment"># lint Go 代码</span></span><br><span class="line">make vet   <span class="comment"># vet Go 代码</span></span><br><span class="line">make <span class="built_in">test</span>  <span class="comment"># 运行测试用例</span></span><br><span class="line">make tar   <span class="comment"># 打包成压缩文件</span></span><br><span class="line"></span><br><span class="line">make docker      <span class="comment"># 编译 docker 镜像</span></span><br><span class="line">make docker.api  <span class="comment"># 编译后端 docker 镜像</span></span><br><span class="line">make docker.ui   <span class="comment"># 编译前端 docker 镜像</span></span><br><span class="line">make push        <span class="comment"># 把镜像推送到 Docker Hub</span></span><br><span class="line"></span><br><span class="line">./bin/naftis-api -h       <span class="comment"># 显示帮助信息</span></span><br><span class="line">./bin/naftis-api version  <span class="comment"># 显示版本信息</span></span><br><span class="line"></span><br><span class="line">./tool/genmanifest.sh  <span class="comment"># 本地渲染Kubernetes部署清单</span></span><br><span class="line">./tool/cleanup.sh      <span class="comment"># 清理已部署的 Naftis</span></span><br></pre></td></tr></table></figure>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>Naftis 目前已在 Github 开源 ，目前功能还比较薄弱，希望更多志同道合的朋友一起参与进来共同完善落地 Istio 生态。</p>
+<p><a href="https://github.com/xiaomi/naftis" target="_blank" rel="noopener">https://github.com/xiaomi/naftis</a></p>
+<p><strong>作者</strong></p>
+<p>郑伟，小米信息技术部基础架构组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP体系、内网OA体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#istio" >
+    <span class="tag-code">istio</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2018/05/11/istio-src-3/">
+        <span class="nav-arrow">← </span>
+        
+          istio源码解析系列(三)-Mixer工作流程浅析
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/06/21/concurrency/">
+        
+          当我们在谈论高并发的时候究竟在谈什么?
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#小米正式开源-Istio-管理面板-Naftis"><span class="toc-nav-text">小米正式开源 Istio 管理面板 Naftis</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#依赖"><span class="toc-nav-text">依赖</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#快速开始"><span class="toc-nav-text">快速开始</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#详细的部署流程"><span class="toc-nav-text">详细的部署流程</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#Kubernetes-集群内运行"><span class="toc-nav-text">Kubernetes 集群内运行</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#本地运行"><span class="toc-nav-text">本地运行</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#数据移植"><span class="toc-nav-text">数据移植</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#启动-API-服务"><span class="toc-nav-text">启动 API 服务</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#配置-Nginx-代理"><span class="toc-nav-text">配置 Nginx 代理</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#启动前端-Node-代理"><span class="toc-nav-text">启动前端 Node 代理</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#预览"><span class="toc-nav-text">预览</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#dashboard"><span class="toc-nav-text">dashboard</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#服务管理"><span class="toc-nav-text">服务管理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#服务详情"><span class="toc-nav-text">服务详情</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#服务-Pod-和拓扑图等"><span class="toc-nav-text">服务 Pod 和拓扑图等</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#任务模板管理"><span class="toc-nav-text">任务模板管理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#任务模板列表"><span class="toc-nav-text">任务模板列表</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#查看指定模板"><span class="toc-nav-text">查看指定模板</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#新增模板"><span class="toc-nav-text">新增模板</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#创建任务"><span class="toc-nav-text">创建任务</span></a></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#Istio-诊断"><span class="toc-nav-text">Istio 诊断</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Docker-镜像"><span class="toc-nav-text">Docker 镜像</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#开发者指南"><span class="toc-nav-text">开发者指南</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#获取源码"><span class="toc-nav-text">获取源码</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#配置环境变量"><span class="toc-nav-text">配置环境变量</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#Go-依赖"><span class="toc-nav-text">Go 依赖</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#代码风格"><span class="toc-nav-text">代码风格</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#其他指令"><span class="toc-nav-text">其他指令</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#其他"><span class="toc-nav-text">其他</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2018/10/25/naftis/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "小米正式开源 Istio 管理面板 Naftis",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

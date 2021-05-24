@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      gRPC 系列——grpc 超时传递原理 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>gRPC 系列——grpc 超时传递原理</h2>
+  <p class="post-date">2019-12-30</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="gRPC-系列——grpc超时传递原理"><a href="#gRPC-系列——grpc超时传递原理" class="headerlink" title="gRPC 系列——grpc超时传递原理"></a>gRPC 系列——grpc超时传递原理</h1><p><strong>[作者简介]</strong> 郑伟，小米信息技术部架构组</p>
+<h2 id="引子"><a href="#引子" class="headerlink" title="引子"></a>引子</h2><p>有个业务方反馈说日志中偶尔出现 xorm 抛出来的 <code>context deadline exceeded</code> 的报错，想咨询下是什么原因。业务方实现的 gRPC Handler 大概代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Svc)</span> <span class="title">BizHandler</span><span class="params">(ctx context.Context, r *projectv1.BizHandlerRequest)</span> <span class="params">(*projectv1.BizHandlerResponse, error)</span></span> &#123;</span><br><span class="line">  <span class="keyword">var</span> bean dao.Bean</span><br><span class="line">  <span class="comment">// 查询某个记录</span></span><br><span class="line">  <span class="keyword">if</span> err := db.W().Find(ctx, &amp;bean); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>目前业务方使用过的 xorm 是我们改造过的，函数签名中都添加了 ctx 参数，目的是为了接入 OpenTracing 做分布式追踪。</p>
+<p>业务方反馈的这个 <code>context deadline execcded</code> 问题应该是出在查询 bean 的时候使用了带 timeout 的 ctx，如果这个 ctx 的 timeout 时间很短，有可能会在执行查询操作前就抛出 <code>context deadline execcded</code> 错误。</p>
+<p>xorm 底层使用的标准包 <code>database/sql</code> ，最终执行查询的函数可能是 <code>ctxDriverQuery</code> 或 <code>ctxDriverStmtQuery</code> 这两个函数。以 <code>ctxDriverQuery</code> 为例：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ctxDriverQuery</span><span class="params">(ctx context.Context, queryerCtx driver.QueryerContext, queryer driver.Queryer, query <span class="keyword">string</span>, nvdargs []driver.NamedValue)</span> <span class="params">(driver.Rows, error)</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">select</span> &#123;</span><br><span class="line">  <span class="keyword">default</span>:</span><br><span class="line">  <span class="comment">// 若 ctx 超时或用户主动 cancel()，则抛出错误</span></span><br><span class="line">  <span class="comment">// 如果只因为 ctx 超时，此时错误就是 `context deadline execcded` </span></span><br><span class="line">  <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, ctx.Err()</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 否则继续执行查询</span></span><br><span class="line">  <span class="keyword">return</span> queryer.Query(query, dargs)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到如果 <code>db.W().Find(ctx, &amp;bean)</code> 使用的 ctx 是设置了 timeout 的 ctx，那么是有可能在经过  xorm 的一些冗长的前置处理后，调用标准包的 <code>ctxDriver</code> 系列函数时产生 <code>context deadline execcded</code> 错误。</p>
+<p>这个很好理解，但是业务方声称并未在 gRPC Handler 中主动为 context 设置 timeout。那么这个带 timeout 的 context 到底怎么产生的呢？</p>
+<h2 id="谁构造的带-timeout-的-context？"><a href="#谁构造的带-timeout-的-context？" class="headerlink" title="谁构造的带 timeout 的 context？"></a>谁构造的带 timeout 的 context？</h2><p>业务方的 gRPC handler 中对传入的 ctx 明显未做 <code>context.WithTimeout()</code> 处理，我们把目光投向客户端。业务方的 service graph 是这样：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ServiceA -&gt; ServiceB -&gt; ServiceC -&gt; xorm</span><br></pre></td></tr></table></figure>
+<p>当前反馈查询 xorm 报错的是 ServiceC，我们找到 ServiceB 看了下调用 ServiceC gRPC Handler 代码。<strong>ServiceB 中 ctx 来自 ServiceA，ServiceB 中拿到 ctx 后，也并未设置 timeout</strong>。</p>
+<p>看来设置 timeout 的只可能是整个调用链发起方（即 ServiceA），通过 Review 代码我们发现 ServiceA 发起 RPC 调用时，确实传入了带 timeout 的 ctx：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// InvokeServiceB 发起对 SerivceB 的 RPC 调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">InvokeServiceB</span><span class="params">()</span></span> &#123;</span><br><span class="line">...</span><br><span class="line">  ctx,_ := context.WithTimeout(ctx, <span class="number">3</span>*time.Second) <span class="comment">// 设置了 3 秒超时</span></span><br><span class="line">  response, err := grpcClient.ServicebBiz(ctx, request) <span class="comment">// 调用 ServiceB 的 RPC 时，使用的是上方定义的带 timeout 的 ctx</span></span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们将 ServiceA 中发起 RPC 调用的 ctx 超时设置成 10 秒，再测试发现 ServiceC 反馈的 <code>context deadline execcded</code> 报错消失了。</p>
+<h2 id="gRPC-超时如何做到跨进程传递？"><a href="#gRPC-超时如何做到跨进程传递？" class="headerlink" title="gRPC 超时如何做到跨进程传递？"></a>gRPC 超时如何做到跨进程传递？</h2><p>我们测试发现，不仅是 Go gRPC 服务之间超时可以传递（如果你拿到上游的 ctx 继续往下透传的话）。<strong>Go 和 Java 服务之间，超时也会随着调用链传递。</strong>那么 gRPC 的超时是如何做到跨进程跨语言传递的？</p>
+<p>有朋友可能想到了 metadata，是否 gRPC 请求链上游设置了超时后，gRPC 框架底层将过期时间放在 metadata 里了？遗憾的是我们打印 metadata 后发现并未发现 timeout 字段踪迹。那么超时时间到底是怎样传递的呢？以 <code>grpc-go</code> 源码为例，我们来找下线索。</p>
+<p>我们知道 gRPC 基于 HTTP2，HTTP2 传输的最小单位是 Frame（帧）。HTTP2 的帧包含很多类型：<code>DATA Frame</code>、<code>HEADERS Frame</code>、<code>PRIORITY Frame</code>、<code>RST_STREAM Frame</code>、<code>CONTINUATON Frame</code> 等。一个 HTTP2 请求/响应可以被拆成多个帧并行发送，每一帧都有一个 StreamID 来标记属于哪个 Stream。服务端收到 Frame 后，根据 StreamID 组装出原始请求数据。</p>
+<img src="/2019/12/30/grpc-deadline/2019-12-30-17-53-41.png">
+<!-- [](2019-12-30-17-53-41.png) -->
+<p>对于 gRPC 而言，Data Frame 用来存放请求的 response payload；Headers Frame 可用来存放一些需要进行跨进程传递的数据，比如 <code>grpc-status（RPC 请求状态码）</code> 、 <code>:path（RPC 完整路径）</code> 等。那么超时时间是否也通过 HEADERS Frame 传递呢？</p>
+<h3 id="客户端设置-timeout"><a href="#客户端设置-timeout" class="headerlink" title="客户端设置 timeout"></a>客户端设置 timeout</h3><p>我们知道，用户定义好 protobuf 并通过 protoc 生成桩代码后，桩代码中已经包含了 gRPCCient 接口的实现，每一个在 protobuf 中定义的 RPC，底层都会通过 ClientConn. Invoke 向服务端发起调用：</p>
+<p>比如对于这样的 protobuf：</p>
+<figure class="highlight protobuf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">syntax = &quot;proto3&quot;;</span><br><span class="line"></span><br><span class="line">package proto;</span><br><span class="line"></span><br><span class="line">service DemoService &#123;</span><br><span class="line">  rpc SayHi(HiRequest) returns (HiResponse);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message HiRequest &#123;</span><br><span class="line">  string name = 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message HiResponse &#123;</span><br><span class="line">  string message = 1;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>生成的桩代码中已经包含了 Client 实现：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> DemoServiceClient <span class="keyword">interface</span> &#123;</span><br><span class="line">  SayHiOK(ctx context.Context, in *HiRequest, opts ...grpc.CallOption) (*HiResponse, error)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> demoServiceClient <span class="keyword">struct</span> &#123;</span><br><span class="line">  cc *grpc.ClientConn</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDemoServiceClient</span><span class="params">(cc *grpc.ClientConn)</span> <span class="title">DemoServiceClient</span></span> &#123;</span><br><span class="line">  <span class="keyword">return</span> &amp;demoServiceClient&#123;cc&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *demoServiceClient)</span> <span class="title">SayHiOK</span><span class="params">(ctx context.Context, in *HiRequest, opts ...grpc.CallOption)</span> <span class="params">(*HiResponse, error)</span></span> &#123;</span><br><span class="line">  out := <span class="built_in">new</span>(HiResponse)</span><br><span class="line">  <span class="comment">// 调用 grpc.ClientConn.Invoke() 函数，grpc.ClientConn.Invoke() 内部最终会调用 invoke() 函数</span></span><br><span class="line">  err := c.cc.Invoke(ctx, <span class="string">"/proto.DemoService/SayHi"</span>, in, out, opts...)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> out, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>客户端发起 gRPC 请求时，最终会调用 invoke() 方法，invoke() 源码大概如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">invoke</span><span class="params">(ctx context.Context, method <span class="keyword">string</span>, req, reply <span class="keyword">interface</span>&#123;&#125;, cc *ClientConn, opts ...CallOption)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  <span class="comment">// 构造 clientStream</span></span><br><span class="line">  cs, err := newClientStream(ctx, unaryStreamDesc, cc, method, opts...)</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 发送 RPC 请求</span></span><br><span class="line">  <span class="keyword">if</span> err := cs.SendMsg(req); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> cs.RecvMsg(reply)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们看下 newClientStream 源码，newClientStream 源码比较复杂，我们挑重点看：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newClientStream</span><span class="params">(ctx context.Context, desc *StreamDesc, cc *ClientConn, method <span class="keyword">string</span>, opts ...CallOption)</span> <span class="params">(_ ClientStream, err error)</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 等待 resolver 解析出可用地址</span></span><br><span class="line">  <span class="keyword">if</span> err := cc.waitForResolvedAddrs(ctx); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 构造 *clientStream</span></span><br><span class="line">  cs := &amp;clientStream&#123;</span><br><span class="line">    callHdr:      callHdr,</span><br><span class="line">    ctx:          ctx,</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 构造新的 *csAttempt，newAttemptLocked 内部会获取 grpc.ClientTransport 并赋值给 *csAttemp.t</span></span><br><span class="line">  <span class="keyword">if</span> err := cs.newAttemptLocked(sh, trInfo); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    cs.finish(err)</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">return</span> cs, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其中 csAttempt.newStream 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> csAttempt <span class="keyword">struct</span> &#123;</span><br><span class="line">  cs   *clientStream</span><br><span class="line">  t    transport.ClientTransport <span class="comment">// 客户端 Transport</span></span><br><span class="line">  s    *transport.Stream         <span class="comment">// 真正处理RPC 的 Stream</span></span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a *csAttempt)</span> <span class="title">newStream</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 通过 Transport.NewStream 构造RPC Stream</span></span><br><span class="line">  s, err := a.t.NewStream(cs.ctx, cs.callHdr)</span><br><span class="line">  cs.attempt.s = s</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>transport.ClientTransport</code> 是一个接口，gRPC 内部 <code>internal/transport.http2Client</code> 实现了此接口。<br><code>http2Client.NewStream()</code> 源码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *http2Client)</span> <span class="title">NewStream</span><span class="params">(ctx context.Context, callHdr *CallHdr)</span> <span class="params">(_ *Stream, err error)</span></span> &#123;</span><br><span class="line">  ctx = peer.NewContext(ctx, t.getPeer())</span><br><span class="line">  headerFields, err := t.createHeaderFields(ctx, callHdr)</span><br><span class="line">  ...</span><br><span class="line">  hdr := &amp;headerFrame&#123;</span><br><span class="line">    hf:        headerFields,</span><br><span class="line">    endStream: <span class="literal">false</span>,</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">for</span> &#123;</span><br><span class="line">    success, err := t.controlBuf.executeAndPut(<span class="function"><span class="keyword">func</span><span class="params">(it <span class="keyword">interface</span>&#123;&#125;)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">      <span class="keyword">if</span> !checkForStreamQuota(it) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> !checkForHeaderListSize(it) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">    &#125;, hdr)</span><br><span class="line">    ...</span><br><span class="line">  <span class="keyword">return</span> s, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>createHeaderFields</code> 实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *http2Client)</span> <span class="title">createHeaderFields</span><span class="params">(ctx context.Context, callHdr *CallHdr)</span> <span class="params">([]hpack.HeaderField, error)</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 如果透传过来的 ctx 被设置了 timeout/deadline，则在 HTTP2 headers frame 中添加 grpc-timeout 字段，</span></span><br><span class="line">  <span class="comment">// grpc-timeout 字段值被转化成 XhYmZs 字符串形式的超时时间</span></span><br><span class="line">  <span class="keyword">if</span> dl, ok := ctx.Deadline(); ok &#123;</span><br><span class="line">    timeout := time.Until(dl)</span><br><span class="line">    headerFields = <span class="built_in">append</span>(headerFields, hpack.HeaderField&#123;Name: <span class="string">"grpc-timeout"</span>, Value: encodeTimeout(timeout)&#125;)</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">return</span> headerFields, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">可以看到客户端发起请求时，如果设置了带 timeout 的ctx，则会导致底层 HTTP2 HEADERS Frame 中追加 <span class="string">`grpc-timeout`</span> 字段</span><br></pre></td></tr></table></figure>
+<h3 id="服务端解析-timeout"><a href="#服务端解析-timeout" class="headerlink" title="服务端解析 timeout"></a>服务端解析 timeout</h3><p>服务端通过 <code>Serve</code> 方法启动 grpc Server，监听来自客户端连接。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">Serve</span><span class="params">(lis net.Listener)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="keyword">for</span> &#123;</span><br><span class="line">    <span class="comment">// 接收客户端的连接</span></span><br><span class="line">    rawConn, err := lis.Accept()</span><br><span class="line">    ...</span><br><span class="line">    s.serveWG.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      <span class="comment">// 对每一个客户端的连接单独开一个协程来处理</span></span><br><span class="line">      s.handleRawConn(rawConn)</span><br><span class="line">      s.serveWG.Done()</span><br><span class="line">    &#125;()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">handleRawConn</span><span class="params">(rawConn net.Conn)</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 构造 HTTP2 Transport</span></span><br><span class="line">  st := s.newHTTP2Transport(conn, authInfo)</span><br><span class="line">  <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 处理 HTTP2 Stream</span></span><br><span class="line">    s.serveStreams(st)</span><br><span class="line">    s.removeConn(st)</span><br><span class="line">  &#125;()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">serveStreams</span><span class="params">(st transport.ServerTransport)</span></span> &#123;</span><br><span class="line">  <span class="keyword">defer</span> st.Close()</span><br><span class="line">  <span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">  <span class="comment">// http2Server 实现了 transport.ServerTransport 接口，此处会调用 http2Server.HandleSteams方法</span></span><br><span class="line">  <span class="comment">// st.HandleStreams 方法签名中第一个参数 handle func(stream *transport.Stream) &#123;&#125;为函数类型，</span></span><br><span class="line">  <span class="comment">// handle 随后会在 operateHeaders 中被调用</span></span><br><span class="line">  st.HandleStreams(<span class="function"><span class="keyword">func</span><span class="params">(stream *transport.Stream)</span></span> &#123;</span><br><span class="line">    wg.Add(<span class="number">1</span>)</span><br><span class="line">    <span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">      <span class="keyword">defer</span> wg.Done()</span><br><span class="line">      <span class="comment">// 解析出 gPRC Service, gRPC method, gRPC request message，执行注册到 gRPC.Server 中的 RPC 方法</span></span><br><span class="line">      s.handleStream(st, stream, s.traceInfo(st, stream))</span><br><span class="line">    &#125;()</span><br><span class="line">  &#125;, ...)</span><br><span class="line">  wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// http2Server.HandleStreams 会调用传入的 handle 处理 HTTP2 Stream</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *http2Server)</span> <span class="title">HandleStreams</span><span class="params">(handle <span class="keyword">func</span>(*Stream)</span>, <span class="title">traceCtx</span> <span class="title">func</span><span class="params">(context.Context, <span class="keyword">string</span>)</span> <span class="title">context</span>.<span class="title">Context</span>)</span> &#123;</span><br><span class="line">  <span class="keyword">defer</span> <span class="built_in">close</span>(t.readerDone)</span><br><span class="line">  <span class="keyword">for</span> &#123;</span><br><span class="line">    t.controlBuf.throttle()</span><br><span class="line">    frame, err := t.framer.fr.ReadFrame()</span><br><span class="line">    ...</span><br><span class="line">    <span class="keyword">switch</span> frame := frame.(<span class="keyword">type</span>) &#123;</span><br><span class="line">    <span class="comment">// 如果是 Headers 帧，则调用 operateHeaders 方法处理 Headers</span></span><br><span class="line">    <span class="keyword">case</span> *http2.MetaHeadersFrame:</span><br><span class="line">      <span class="keyword">if</span> t.operateHeaders(frame, handle, traceCtx) &#123;</span><br><span class="line">        t.Close()</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line">    <span class="comment">// 如果是 Data 帧，则调用 handleData 方法处理</span></span><br><span class="line">    <span class="keyword">case</span> *http2.DataFrame:</span><br><span class="line">      t.handleData(frame)</span><br><span class="line">      ...</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// operateHeaders 解析 Headers 帧</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *http2Server)</span> <span class="title">operateHeaders</span><span class="params">(frame *http2.MetaHeadersFrame, handle <span class="keyword">func</span>(*Stream)</span>, <span class="title">traceCtx</span> <span class="title">func</span><span class="params">(context.Context, <span class="keyword">string</span>)</span> <span class="title">context</span>.<span class="title">Context</span>) <span class="params">(fatal <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">  <span class="comment">// 从HTTP2 Headers 帧中获取 StreamID</span></span><br><span class="line">  streamID := frame.Header().StreamID</span><br><span class="line">  state := &amp;decodeState&#123;</span><br><span class="line">    serverSide: <span class="literal">true</span>,</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 从HTTP2 Headers 帧中解析出Header。如果其中包含 grpc-timeout HEADER，</span></span><br><span class="line">  <span class="comment">// 则解析出其值并赋值给 state.data.timeout，并将 state.data.timeoutSet 设成 true</span></span><br><span class="line">  <span class="keyword">if</span> err := state.decodeHeader(frame); err != <span class="literal">nil</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> se, ok := status.FromError(err); ok &#123;</span><br><span class="line">      ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  buf := newRecvBuffer()</span><br><span class="line">  <span class="comment">// 构造 HTTP2 Stream</span></span><br><span class="line">  s := &amp;Stream&#123;</span><br><span class="line">    id:             streamID,</span><br><span class="line">    st:             t,</span><br><span class="line">    buf:            buf,</span><br><span class="line">    fc:             &amp;inFlow&#123;limit: <span class="keyword">uint32</span>(t.initialWindowSize)&#125;,</span><br><span class="line">    recvCompress:   state.data.encoding,</span><br><span class="line">    method:         state.data.method,</span><br><span class="line">    contentSubtype: state.data.contentSubtype,</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 如果 state.data.timeoutSet 为 true，则构造一个新的带 timeout 的 ctx 覆盖原 s.ctx</span></span><br><span class="line">  <span class="comment">// s.ctx 最终会透传到用户实现的 gRPC Handler 中，参与业务逻辑处理</span></span><br><span class="line">  <span class="comment">// 见 server.go 中 processUnaryRPC 内:</span></span><br><span class="line">  <span class="comment">//    ctx := NewContextWithServerTransportStream(stream.Context(), stream)</span></span><br><span class="line">  <span class="comment">//    reply, appErr := md.Handler(srv.server, ctx, df, s.opts.unaryInt)</span></span><br><span class="line">  <span class="comment">// 此处不再赘述</span></span><br><span class="line">  <span class="keyword">if</span> state.data.timeoutSet &#123;</span><br><span class="line">    s.ctx, s.cancel = context.WithTimeout(t.ctx, state.data.timeout)</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    s.ctx, s.cancel = context.WithCancel(t.ctx)</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">  t.controlBuf.put(&amp;registerStream&#123;</span><br><span class="line">    streamID: s.id,</span><br><span class="line">    wq:       s.wq,</span><br><span class="line">  &#125;)</span><br><span class="line">  <span class="comment">// 调用 serveStreams 定义好的 handle，执行gRPC调用</span></span><br><span class="line">  handle(s)</span><br><span class="line">  <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>decodeHeader</code> 会遍历 frame 中所有 Fields，并调用 <code>processHeaderField</code> 对 HTTP2 HEADERS 帧中的特定的 Field 进行处理。</p>
+<ul>
+<li>比如可以从 <code>:path</code> 中解析出包含 protobuf package、service name 和 RPC method name 的完整路径；</li>
+<li>比如可以从 <code>grpc-timeout</code> 中解析出上游传递过来的 timeout；</li>
+</ul>
+<p><code>decodeHeader</code> 内部实现如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *decodeState)</span> <span class="title">decodeHeader</span><span class="params">(frame *http2.MetaHeadersFrame)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="comment">// 遍历Headers帧，解析Field</span></span><br><span class="line">  <span class="keyword">for</span> _, hf := <span class="keyword">range</span> frame.Fields &#123;</span><br><span class="line">    d.processHeaderField(hf)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *decodeState)</span> <span class="title">processHeaderField</span><span class="params">(f hpack.HeaderField)</span></span> &#123;</span><br><span class="line">  <span class="keyword">switch</span> f.Name &#123;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 解析出 grpc-timeout</span></span><br><span class="line">    <span class="keyword">case</span> <span class="string">"grpc-timeout"</span>:</span><br><span class="line">      d.data.timeoutSet = <span class="literal">true</span></span><br><span class="line">      <span class="keyword">var</span> err error</span><br><span class="line">      <span class="keyword">if</span> d.data.timeout, err = decodeTimeout(f.Value); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        d.data.grpcErr = status.Errorf(codes.Internal, <span class="string">"transport: malformed time-out: %v"</span>, err)</span><br><span class="line">      &#125;</span><br><span class="line">    ...</span><br><span class="line">    <span class="comment">// 解析出 grpc 带 protobuf package path、Service name、RPC method name 的完整路径</span></span><br><span class="line">    <span class="comment">// 形如 /package.service/method</span></span><br><span class="line">    <span class="keyword">case</span> <span class="string">":path"</span>:</span><br><span class="line">      d.data.method = f.Value</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>至此可以看到，gRPC 框架确实是通过 HTTP2 HEADERS Frame 中的 <code>grpc-timeout</code> 字段来实现跨进程传递超时时间。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul>
+<li>客户端客户端发起 RPC 调用时传入了带 timeout 的 ctx</li>
+<li>gRPC 框架底层通过 HTTP2 协议发送 RPC 请求时，将 timeout 值写入到 <code>grpc-timeout</code> HEADERS Frame 中</li>
+<li>服务端接收 RPC 请求时，gRPC 框架底层解析 HTTP2 HEADERS 帧，读取 <code>grpc-timeout</code> 值，并覆盖透传到实际处理 RPC 请求的业务 gPRC Handle 中</li>
+<li>如果此时服务端又发起对其他 gRPC 服务的调用，且使用的是透传的 ctx，这个 timeout 会减去在本进程中耗时，从而导致这个 timeout 传递到下一个 gRPC 服务端时变短，这样即实现了所谓的 <code>超时传递</code> 。目前这个功能测试发现在 <code>grpc-go</code> 和 <code>grpc-java</code> 中实现， <code>grpc-python</code> 貌似暂未实现此功能（见 <a href="https://github.com/grpc/grpc/issues/18358" target="_blank" rel="noopener">https://github.com/grpc/grpc/issues/18358</a>）。</li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>郑伟，小米信息技术部架构组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#微服务" >
+    <span class="tag-code">微服务</span>
+  </a>
+
+  <a href="/tags#Golang" >
+    <span class="tag-code">Golang</span>
+  </a>
+
+  <a href="/tags#gRPC" >
+    <span class="tag-code">gRPC</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/12/24/mysql-implicit-conversion/">
+        <span class="nav-arrow">← </span>
+        
+          浅析 MySQL 的隐式转换
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/01/02/distributed-transaction/">
+        
+          分布式事务，这一篇就够了
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#gRPC-系列——grpc超时传递原理"><span class="toc-nav-text">gRPC 系列——grpc超时传递原理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#引子"><span class="toc-nav-text">引子</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#谁构造的带-timeout-的-context？"><span class="toc-nav-text">谁构造的带 timeout 的 context？</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#gRPC-超时如何做到跨进程传递？"><span class="toc-nav-text">gRPC 超时如何做到跨进程传递？</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#客户端设置-timeout"><span class="toc-nav-text">客户端设置 timeout</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#服务端解析-timeout"><span class="toc-nav-text">服务端解析 timeout</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/12/30/grpc-deadline/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "gRPC 系列——grpc 超时传递原理",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

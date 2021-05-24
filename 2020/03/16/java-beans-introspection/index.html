@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      小议 Java 内省机制 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>小议 Java 内省机制</h2>
+  <p class="post-date">2020-03-16</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="小议-Java-内省机制"><a href="#小议-Java-内省机制" class="headerlink" title="小议 Java 内省机制"></a>小议 Java 内省机制</h1><p><strong>[作者简介]</strong> 魏民，信息部售后组研发工程师</p>
+<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>Wiki 中是这样描述内省的：</p>
+<blockquote>
+<p>在计算机科学中，内省是指计算机程序在运行时（Run time）检查对象（Object）类型的一种能力，通常也可以称作运行时类型检查。</p>
+</blockquote>
+<p>这个描述非常宽泛，但有三个关键词：</p>
+<ul>
+<li>运行时</li>
+<li>对象</li>
+<li>类型</li>
+</ul>
+<p>Java 官方对 Java Beans 内省的定义：</p>
+<blockquote>
+<p>At runtime and in the builder environment we need to be able to figure out which properties, events, and methods a Java Bean supports. We call this process introspection.</p>
+</blockquote>
+<p>从 Java Bean 的角度来看，这里的对象就是 Bean 对象，主要关注点是属性、方法和事件等，也就是说在运行时可以获取相应的信息进行一些处理，这就是 Java Beans 的内省机制。</p>
+<h3 id="与反射的区别"><a href="#与反射的区别" class="headerlink" title="与反射的区别"></a>与反射的区别</h3><p>Java Beans 内省其实就是对反射的一种封装，这个从源码中或者官方文档中都能看到：</p>
+<blockquote>
+<p>By default we will use a low level reflection mechanism to study the methods supported by a target bean and then apply simple design patterns to deduce from those methods what properties, events, and public methods are supported.</p>
+</blockquote>
+<h2 id="Java-Beans-内省机制"><a href="#Java-Beans-内省机制" class="headerlink" title="Java Beans 内省机制"></a>Java Beans 内省机制</h2><h3 id="核心类库"><a href="#核心类库" class="headerlink" title="核心类库"></a>核心类库</h3><p>Java Beans 内省机制的核心类是 <code>Introspector</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">* The Introspector <span class="class"><span class="keyword">class</span> <span class="title">provides</span> <span class="title">a</span> <span class="title">standard</span> <span class="title">way</span> <span class="title">for</span> <span class="title">tools</span> <span class="title">to</span> <span class="title">learn</span> <span class="title">about</span></span></span><br><span class="line"><span class="class">* <span class="title">the</span> <span class="title">properties</span>, <span class="title">events</span>, <span class="title">and</span> <span class="title">methods</span> <span class="title">supported</span> <span class="title">by</span> <span class="title">a</span> <span class="title">target</span> <span class="title">Java</span> <span class="title">Bean</span>.</span></span><br></pre></td></tr></table></figure>
+<p>操作范围主要包括但不局限于 Java Beans 的属性，事件和方法，具体是基于以下几个类实现：</p>
+<ul>
+<li><code>BeanInfo</code><ul>
+<li>Java Bean 信息类</li>
+</ul>
+</li>
+<li><code>PropertyDescriptor</code><ul>
+<li>属性描述类</li>
+</ul>
+</li>
+<li><code>MethodDescriptor</code><ul>
+<li>方法描述类</li>
+</ul>
+</li>
+<li><code>EventSetDescriptor</code><ul>
+<li>事件描述集合</li>
+</ul>
+</li>
+</ul>
+<p>先看一个示例：</p>
+<p>定义一个 Java Bean：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// getter/setter</span></span><br><span class="line">    <span class="comment">// toString</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test1</span><span class="params">()</span> <span class="keyword">throws</span> IntrospectionException </span>&#123;</span><br><span class="line">    <span class="comment">//获取 User Bean 信息</span></span><br><span class="line">    BeanInfo userBeanInfo = Introspector.getBeanInfo(User.class);</span><br><span class="line">    <span class="comment">//属性描述</span></span><br><span class="line">    PropertyDescriptor[] propertyDescriptors = userBeanInfo.getPropertyDescriptors();</span><br><span class="line">    System.out.println(<span class="string">"属性描述："</span>);</span><br><span class="line">    Stream.of(propertyDescriptors).forEach(System.out::println);</span><br><span class="line">    <span class="comment">//方法描述</span></span><br><span class="line">    System.out.println(<span class="string">"方法描述："</span>);</span><br><span class="line">    MethodDescriptor[] methodDescriptors = userBeanInfo.getMethodDescriptors();</span><br><span class="line">    Stream.of(methodDescriptors).forEach(System.out::println);</span><br><span class="line">    <span class="comment">//事件描述</span></span><br><span class="line">    System.out.println(<span class="string">"事件描述："</span>);</span><br><span class="line">    EventSetDescriptor[] eventSetDescriptors = userBeanInfo.getEventSetDescriptors();</span><br><span class="line">    Stream.of(eventSetDescriptors).forEach(System.out::println);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">属性描述：</span><br><span class="line">java.beans.PropertyDescriptor[name=age; propertyType=<span class="class"><span class="keyword">class</span> <span class="title">java</span>.<span class="title">lang</span>.<span class="title">Integer</span></span>; readMethod=<span class="keyword">public</span> java.lang.Integer introspector.bean.User.getAge(); writeMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.setAge(java.lang.Integer)]</span><br><span class="line">java.beans.PropertyDescriptor[name=<span class="class"><span class="keyword">class</span></span>; propertyType=<span class="class"><span class="keyword">class</span> <span class="title">java</span>.<span class="title">lang</span>.<span class="title">Class</span></span>; readMethod=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> java.lang.Class java.lang.Object.getClass()]</span><br><span class="line">java.beans.PropertyDescriptor[name=username; propertyType=<span class="class"><span class="keyword">class</span> <span class="title">java</span>.<span class="title">lang</span>.<span class="title">String</span></span>; readMethod=<span class="keyword">public</span> java.lang.String introspector.bean.User.getUsername(); writeMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.setUsername(java.lang.String)]</span><br><span class="line">方法描述：</span><br><span class="line">java.beans.MethodDescriptor[name=getClass; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> java.lang.Class java.lang.Object.getClass()]</span><br><span class="line">java.beans.MethodDescriptor[name=setAge; method=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.setAge(java.lang.Integer)]</span><br><span class="line">java.beans.MethodDescriptor[name=getAge; method=<span class="keyword">public</span> java.lang.Integer introspector.bean.User.getAge()]</span><br><span class="line">java.beans.MethodDescriptor[name=wait; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> java.lang.Object.wait(<span class="keyword">long</span>,<span class="keyword">int</span>) <span class="keyword">throws</span> java.lang.InterruptedException]</span><br><span class="line">java.beans.MethodDescriptor[name=notifyAll; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> java.lang.Object.notifyAll()]</span><br><span class="line">java.beans.MethodDescriptor[name=notify; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> java.lang.Object.notify()]</span><br><span class="line">java.beans.MethodDescriptor[name=getUsername; method=<span class="keyword">public</span> java.lang.String introspector.bean.User.getUsername()]</span><br><span class="line">java.beans.MethodDescriptor[name=wait; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> java.lang.Object.wait() <span class="keyword">throws</span> java.lang.InterruptedException]</span><br><span class="line">java.beans.MethodDescriptor[name=hashCode; method=<span class="keyword">public</span> <span class="keyword">native</span> <span class="keyword">int</span> java.lang.Object.hashCode()]</span><br><span class="line">java.beans.MethodDescriptor[name=setUsername; method=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.setUsername(java.lang.String)]</span><br><span class="line">java.beans.MethodDescriptor[name=wait; method=<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">native</span> <span class="keyword">void</span> java.lang.Object.wait(<span class="keyword">long</span>) <span class="keyword">throws</span> java.lang.InterruptedException]</span><br><span class="line">java.beans.MethodDescriptor[name=equals; method=<span class="keyword">public</span> <span class="keyword">boolean</span> java.lang.Object.equals(java.lang.Object)]</span><br><span class="line">java.beans.MethodDescriptor[name=toString; method=<span class="keyword">public</span> java.lang.String introspector.bean.User.toString()]</span><br><span class="line">事件描述：</span><br></pre></td></tr></table></figure>
+<p>可以看出通过内省机制可以获取 Java Bean 的属性、方法描述，这里事件描述是空的（关于事件相关会在后面介绍）。由于 Java 类都会继承 <code>Object</code> 类，可以看到这里将 <code>Object</code> 类相关的属性和方法描述也输出了，如果想将某个类的描述信息排除可以使用 <code>java.beans.Introspector#getBeanInfo(java.lang.Class&lt;?&gt;, java.lang.Class&lt;?&gt;)</code> 这个方法。</p>
+<h3 id="属性处理"><a href="#属性处理" class="headerlink" title="属性处理"></a>属性处理</h3><h4 id="配置绑定"><a href="#配置绑定" class="headerlink" title="配置绑定"></a>配置绑定</h4><p>通过 <code>PropertyDescriptor</code> 可以基于字段名为可写属性设置值。</p>
+<p>比如我们经常会使用这样的配置文件：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">user:</span></span><br><span class="line"><span class="attr">  username:</span> <span class="string">zhangsan</span></span><br><span class="line"><span class="attr">  age:</span> <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>配置文件会与对象进行数据绑定。测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test2</span><span class="params">()</span> <span class="keyword">throws</span> IntrospectionException </span>&#123;</span><br><span class="line">    YamlPropertiesFactoryBean yaml = <span class="keyword">new</span> YamlPropertiesFactoryBean();</span><br><span class="line">    yaml.setResources(<span class="keyword">new</span> ClassPathResource(<span class="string">"application.yml"</span>));</span><br><span class="line">    String path = <span class="string">"user."</span>;</span><br><span class="line">    Properties properties = yaml.getObject();</span><br><span class="line">    System.out.println(properties);</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    <span class="comment">//获取 User Bean 信息，排除 Object</span></span><br><span class="line">    BeanInfo userBeanInfo = Introspector.getBeanInfo(User.class, Object.class);</span><br><span class="line">    <span class="comment">//属性描述</span></span><br><span class="line">    PropertyDescriptor[] propertyDescriptors = userBeanInfo.getPropertyDescriptors();</span><br><span class="line">    Stream.of(propertyDescriptors).forEach(propertyDescriptor -&gt; &#123;</span><br><span class="line">        <span class="comment">//获取属性名称</span></span><br><span class="line">        String property = propertyDescriptor.getName();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            propertyDescriptor.getWriteMethod().invoke(user,properties.get(path+property));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (IllegalAccessException | InvocationTargetException ignored) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    System.out.println(user);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">User&#123;username=<span class="string">'zhangsan'</span>, age=<span class="number">1</span>&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="在-Spring-中的使用"><a href="#在-Spring-中的使用" class="headerlink" title="在 Spring 中的使用"></a>在 Spring 中的使用</h5><p>在传统的 Spring 开发中我们需要在 web.xml 中指定一些配置参数，比如：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">servlet</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-name</span>&gt;</span>app<span class="tag">&lt;/<span class="name">servlet-name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">servlet-class</span>&gt;</span>org.springframework.web.servlet.DispatcherServlet<span class="tag">&lt;/<span class="name">servlet-class</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">init-param</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">param-name</span>&gt;</span>contextConfigLocation<span class="tag">&lt;/<span class="name">param-name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">param-value</span>&gt;</span><span class="tag">&lt;/<span class="name">param-value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">init-param</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">load-on-startup</span>&gt;</span>1<span class="tag">&lt;/<span class="name">load-on-startup</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">servlet</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>这里有一个 <code>contextConfigLocation</code> 参数，这个参数最终是与 <code>FrameworkServlet</code> 类中的一个属性进行绑定：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">FrameworkServlet</span> <span class="keyword">extends</span> <span class="title">HttpServletBean</span> <span class="keyword">implements</span> <span class="title">ApplicationContextAware</span> </span>&#123;</span><br><span class="line">  <span class="keyword">private</span> String contextConfigLocation;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么 Spring 是如何将 web.xml 中的配置项与属性进行绑定的呢，可以参数看<code>org.springframework.web.servlet.HttpServletBean#init()</code> 方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> <span class="keyword">throws</span> ServletException </span>&#123;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Set bean properties from init parameters.</span></span><br><span class="line">  PropertyValues pvs = <span class="keyword">new</span> ServletConfigPropertyValues(getServletConfig(), <span class="keyword">this</span>.requiredProperties);</span><br><span class="line">  <span class="keyword">if</span> (!pvs.isEmpty()) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(<span class="keyword">this</span>);</span><br><span class="line">      ResourceLoader resourceLoader = <span class="keyword">new</span> ServletContextResourceLoader(getServletContext());</span><br><span class="line">      bw.registerCustomEditor(Resource.class, <span class="keyword">new</span> ResourceEditor(resourceLoader, getEnvironment()));</span><br><span class="line">      initBeanWrapper(bw);</span><br><span class="line">      bw.setPropertyValues(pvs, <span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (BeansException ex) &#123;</span><br><span class="line">      <span class="keyword">if</span> (logger.isErrorEnabled()) &#123;</span><br><span class="line">        logger.error(<span class="string">"Failed to set bean properties on servlet '"</span> + getServletName() + <span class="string">"'"</span>, ex);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">throw</span> ex;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Let subclasses do whatever initialization they like.</span></span><br><span class="line">  initServletBean();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到 Spring 是通过 <code>BeanWrapper</code> 完成对属性的绑定：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BeanWrapper</span> <span class="keyword">extends</span> <span class="title">ConfigurablePropertyAccessor</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 获取属性描述器</span></span><br><span class="line">    PropertyDescriptor[] getPropertyDescriptors();</span><br><span class="line"></span><br><span class="line">    <span class="function">PropertyDescriptor <span class="title">getPropertyDescriptor</span><span class="params">(String var1)</span> <span class="keyword">throws</span> InvalidPropertyException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>而 <code>BeanWrapper</code> 又继承了 <code>PropertyAccessor</code> 接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">PropertyAccessor</span> </span>&#123;</span><br><span class="line">    <span class="comment">//读属性</span></span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isReadableProperty</span><span class="params">(String var1)</span></span>;</span><br><span class="line">    <span class="comment">//写属性</span></span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">isWritableProperty</span><span class="params">(String var1)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Nullable</span></span><br><span class="line">    Class&lt;?&gt; getPropertyType(String var1) <span class="keyword">throws</span> BeansException;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Nullable</span></span><br><span class="line">    <span class="function">TypeDescriptor <span class="title">getPropertyTypeDescriptor</span><span class="params">(String var1)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>也就是说 Spring 中 <code>BeanWrapper</code> 基于 Java 的内省机制实现了对属性的赋值工作，但是 Spring 并未局限于 Java 提供的 API，而是也进行了扩展和进一步的封装，如 <code>TypeDescriptor</code>。</p>
+<p>可以参考 <code>org.springframework.web.servlet.HttpServletBean#init()</code> 中 <code>BeanWrapper</code> 的使用来实现对 <code>User</code> 对象的属性赋值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test5</span><span class="params">()</span></span>&#123;</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(user);</span><br><span class="line">    MutablePropertyValues pvs = <span class="keyword">new</span> MutablePropertyValues();</span><br><span class="line">    pvs.add(<span class="string">"username"</span>,<span class="string">"zhangsan"</span>);</span><br><span class="line">    pvs.add(<span class="string">"age"</span>,<span class="number">1</span>);</span><br><span class="line">    bw.setPropertyValues(pvs);</span><br><span class="line">    System.out.println(user);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">User&#123;username=<span class="string">'zhangsan'</span>, age=<span class="number">1</span>&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="类型转换"><a href="#类型转换" class="headerlink" title="类型转换"></a>类型转换</h4><p>有属性赋值，必然就会有类型转换。说白了我们从配置文件读取的数据是字符串，与属性进行参数绑定的过程中势必会有类型转换，<code>java.beans</code> 中提供了相应的 API：</p>
+<ul>
+<li><code>PropertyEditor</code><ul>
+<li>属性编辑器顶层接口</li>
+</ul>
+</li>
+<li><code>PropertyEditorSupport</code><ul>
+<li>属性编辑器实现类</li>
+</ul>
+</li>
+<li><code>PropertyEditorManager</code><ul>
+<li>属性编辑器管理器</li>
+<li>在 Spring 中提供了一个 <code>PropertyEditorRegistrar</code></li>
+</ul>
+</li>
+</ul>
+<p>先看一个例子：</p>
+<p>User 类增加 Date 属性：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">private</span> Date createTime;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// getter/setter</span></span><br><span class="line">    <span class="comment">// toString</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>日期转换器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 日期属性编辑器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DatPropertyEditor</span> <span class="keyword">extends</span> <span class="title">PropertyEditorSupport</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAsText</span><span class="params">(String text)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            setValue((text == <span class="keyword">null</span>) ? <span class="keyword">null</span> : <span class="keyword">new</span> SimpleDateFormat(<span class="string">"yyyy-MM-dd"</span>).parse(text));</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ParseException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在之前的例子中内省设置属性值都是直接通过 <code>PropertyDescriptor</code> 获取属性的写方法通过反射去赋值，而如果需要对值进行类型转换，则需要通过 <code>PropertyEditorSupport#setAsText</code> 调用 <code>setValue</code> 方法，然后 <code>setValue</code> 方法触发属性属性修改事件：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">PropertyEditorSupport</span> <span class="keyword">implements</span> <span class="title">PropertyEditor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setValue</span><span class="params">(Object value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.value = value;</span><br><span class="line">        firePropertyChange();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>要注意这里的 <code>value</code> 实际上是临时存储在 <code>PropertyEditorSupport</code> 中，<code>PropertyEditorSupport</code> 则作为事件源，从而得到类型转换后的 <code>value</code>，再通过 <code>PropertyDescriptor</code> 获取属性的写方法通过反射去赋值。</p>
+<p>测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test6</span><span class="params">()</span> <span class="keyword">throws</span> IntrospectionException, FileNotFoundException </span>&#123;</span><br><span class="line">   Map&lt;String,Object&gt; properties = ImmutableMap.of(<span class="string">"age"</span>,<span class="number">1</span>,<span class="string">"username"</span>,<span class="string">"zhangsan"</span>,<span class="string">"createTime"</span>,<span class="string">"2020-01-01"</span>);</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    <span class="comment">//获取 User Bean 信息，排除 Object</span></span><br><span class="line">    BeanInfo userBeanInfo = Introspector.getBeanInfo(User.class, Object.class);</span><br><span class="line">    <span class="comment">//属性描述</span></span><br><span class="line">    PropertyDescriptor[] propertyDescriptors = userBeanInfo.getPropertyDescriptors();</span><br><span class="line">    Stream.of(propertyDescriptors).forEach(propertyDescriptor -&gt; &#123;</span><br><span class="line">        <span class="comment">//获取属性名称</span></span><br><span class="line">        String property = propertyDescriptor.getName();</span><br><span class="line">        <span class="comment">//值</span></span><br><span class="line">        Object value = properties.get(property);</span><br><span class="line">        <span class="keyword">if</span> (Objects.equals(<span class="string">"createTime"</span>, property)) &#123;</span><br><span class="line">            <span class="comment">//设置属性编辑器</span></span><br><span class="line">            propertyDescriptor.setPropertyEditorClass(DatPropertyEditor.class);</span><br><span class="line">            <span class="comment">//创建属性编辑器</span></span><br><span class="line">            PropertyEditor propertyEditor = propertyDescriptor.createPropertyEditor(user);</span><br><span class="line">            <span class="comment">//添加监听器</span></span><br><span class="line">            propertyEditor.addPropertyChangeListener(evt -&gt; &#123;</span><br><span class="line">                <span class="comment">//获取转换后的value</span></span><br><span class="line">                Object value1 = propertyEditor.getValue();</span><br><span class="line">                setPropertyValue(user, propertyDescriptor, value1);</span><br><span class="line">            &#125;);</span><br><span class="line">            propertyEditor.setAsText(String.valueOf(value));</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        setPropertyValue(user, propertyDescriptor, value);</span><br><span class="line">    &#125;);</span><br><span class="line">    System.out.println(user);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 设置属性值</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setPropertyValue</span><span class="params">(User user, PropertyDescriptor propertyDescriptor, Object value1)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        propertyDescriptor.getWriteMethod().invoke(user, value1);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (IllegalAccessException | InvocationTargetException ignored) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">User&#123;username=<span class="string">'zhangsan'</span>, age=<span class="number">1</span>, createTime=<span class="number">2020</span>-<span class="number">1</span>-<span class="number">1</span> <span class="number">0</span>:<span class="number">00</span>:<span class="number">00</span>&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="事件监听"><a href="#事件监听" class="headerlink" title="事件监听"></a>事件监听</h3><p>先举一个的例子，在 Mac 中设置飞书通知方式的时候，当界面右侧选择“提示”的时候，那么左侧也会相应的显示为“提示”：</p>
+<img src="/2020/03/16/java-beans-introspection/java-beans-introspection-01.png">
+<p>如果将右侧看成一个 Java Bean，那么这中间势必存在一个属性变化监听。<code>java.beans</code> 包中也提供了相应实现：</p>
+<ul>
+<li><code>PropertyChangeEvent</code><ul>
+<li>属性变化事件</li>
+</ul>
+</li>
+<li><code>PropertyChangeListener</code><ul>
+<li>属性（生效）变化监听器</li>
+</ul>
+</li>
+<li><code>PropertyChangeSupport</code><ul>
+<li>属性（生效）变化监听器管理器’</li>
+</ul>
+</li>
+<li><code>VetoableChangeListener</code><ul>
+<li>属性（否决）变化监听器</li>
+</ul>
+</li>
+<li><code>VetoableChangeSupport</code><ul>
+<li>属性（否决）变化监听器管理器</li>
+</ul>
+</li>
+</ul>
+<p><code>PropertyChangeEvent</code> 的构造方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">PropertyChangeEvent</span><span class="params">(Object source, String propertyName,</span></span></span><br><span class="line"><span class="function"><span class="params">    Object oldValue, Object newValue)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">super</span>(source);</span><br><span class="line">    <span class="keyword">this</span>.propertyName = propertyName;</span><br><span class="line">    <span class="keyword">this</span>.newValue = newValue;</span><br><span class="line">    <span class="keyword">this</span>.oldValue = oldValue;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过这个构造方法可以看出属性变化监听的关注点：</p>
+<ul>
+<li><code>source</code><ul>
+<li>事件源</li>
+</ul>
+</li>
+<li><code>propertyName</code><ul>
+<li>发生变化的属性名称</li>
+</ul>
+</li>
+<li><code>oldValue</code><ul>
+<li>旧值</li>
+</ul>
+</li>
+<li><code>newValue</code><ul>
+<li>新值</li>
+</ul>
+</li>
+</ul>
+<p>示例代码：</p>
+<p>在 <code>User</code> 中增加属性（生效）变化监听：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> String username;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Integer age;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 属性（生效）变化监听器管理器</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">private</span> PropertyChangeSupport propertyChangeSupport = <span class="keyword">new</span> PropertyChangeSupport(<span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 启动属性（生效）变化</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> propertyName </span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> oldValue </span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> newValue</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">firePropertyChange</span><span class="params">(String propertyName, String oldValue, String newValue)</span> </span>&#123;</span><br><span class="line">        PropertyChangeEvent event = <span class="keyword">new</span> PropertyChangeEvent(<span class="keyword">this</span>, propertyName, oldValue, newValue);</span><br><span class="line">        propertyChangeSupport.firePropertyChange(event);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 添加属性（生效）变化监听器</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addPropertyChangeListener</span><span class="params">(PropertyChangeListener listener)</span></span>&#123;</span><br><span class="line">        propertyChangeSupport.addPropertyChangeListener(listener);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 删除属性（生效）变化监听器</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">removePropertyChangeListener</span><span class="params">(PropertyChangeListener listener)</span></span>&#123;</span><br><span class="line">        propertyChangeSupport.removePropertyChangeListener(listener);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取属性（生效）变化监听器</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> PropertyChangeListener[] getPropertyChangeListeners() &#123;</span><br><span class="line">        <span class="keyword">return</span> propertyChangeSupport.getPropertyChangeListeners();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setUsername</span><span class="params">(String username)</span> </span>&#123;</span><br><span class="line">        String oldValue = <span class="keyword">this</span>.username;</span><br><span class="line">        <span class="keyword">this</span>.username = username;</span><br><span class="line">        firePropertyChange(<span class="string">"username"</span>, oldValue, username);</span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">   <span class="comment">// getter/setter</span></span><br><span class="line">   <span class="comment">// toString</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test3</span><span class="params">()</span></span>&#123;</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.setAge(<span class="number">1</span>);</span><br><span class="line">    user.setUsername(<span class="string">"zhangsan"</span>);</span><br><span class="line">    user.addPropertyChangeListener(System.out::println);</span><br><span class="line">    user.setUsername(<span class="string">"lisi"</span>);</span><br><span class="line">    user.setUsername(<span class="string">"wangwu"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.beans.PropertyChangeEvent[propertyName=name; oldValue=zhangsan; newValue=lisi; propagationId=<span class="keyword">null</span>; source=User&#123;username=<span class="string">'lisi'</span>, age=<span class="number">1</span>&#125;]</span><br><span class="line">java.beans.PropertyChangeEvent[propertyName=name; oldValue=lisi; newValue=wangwu; propagationId=<span class="keyword">null</span>; source=User&#123;username=<span class="string">'wangwu'</span>, age=<span class="number">1</span>&#125;]</span><br></pre></td></tr></table></figure>
+<p>可以看到在添加了监听器后，当 username 属性发生变化的时候会出发监听事件。</p>
+<p>再看看另外一种监听器 <code>VetoableChangeListener</code>。在 <code>User</code> 中添加监听器：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 属性（否决）变化监听器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> VetoableChangeSupport vetoableChangeSupport = <span class="keyword">new</span> VetoableChangeSupport(<span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 启动属性（否决）变化</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> propertyName</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> oldValue</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span> newValue</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">fireVetoableChange</span><span class="params">(String propertyName, String oldValue, String newValue)</span> <span class="keyword">throws</span> PropertyVetoException </span>&#123;</span><br><span class="line">    PropertyChangeEvent event = <span class="keyword">new</span> PropertyChangeEvent(<span class="keyword">this</span>, propertyName, oldValue, newValue);</span><br><span class="line">    vetoableChangeSupport.fireVetoableChange(event);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 添加属性（否决）变化监听器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addVetoableChangeListener</span><span class="params">(VetoableChangeListener listener)</span></span>&#123;</span><br><span class="line">    vetoableChangeSupport.addVetoableChangeListener(listener);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 删除属性（否决）变化监听器</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">removeVetoableChangeListener</span><span class="params">(VetoableChangeListener listener)</span></span>&#123;</span><br><span class="line">    vetoableChangeSupport.removeVetoableChangeListener(listener);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setUsername</span><span class="params">(String username)</span> <span class="keyword">throws</span> PropertyVetoException </span>&#123;</span><br><span class="line">    String oldValue = <span class="keyword">this</span>.username;</span><br><span class="line">    fireVetoableChange(<span class="string">"username"</span>,oldValue,username);</span><br><span class="line">    <span class="keyword">this</span>.username = username;</span><br><span class="line">    firePropertyChange(<span class="string">"username"</span>, oldValue, username);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test3</span><span class="params">()</span> <span class="keyword">throws</span> PropertyVetoException </span>&#123;</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.setAge(<span class="number">1</span>);</span><br><span class="line">    user.addVetoableChangeListener(evt -&gt; &#123;</span><br><span class="line">        System.out.println(evt.getNewValue()+<span class="string">",,"</span>+evt.getOldValue());</span><br><span class="line">        <span class="keyword">if</span> (Objects.equals(evt.getNewValue(), evt.getOldValue())) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> PropertyVetoException(<span class="string">"当前属性值未发生任何变化"</span>, evt);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    user.addPropertyChangeListener(System.out::println);</span><br><span class="line">    user.setUsername(<span class="string">"lisi"</span>);</span><br><span class="line">    user.setUsername(<span class="string">"zhangsan"</span>);</span><br><span class="line">    user.setUsername(<span class="string">"zhangsan"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行时发现一直无法抛出异常。查看源码发现 <code>PropertyChangeSupport</code> 和 <code>VetoableChangeSupport</code> 当新旧值相等时不会触发监听，于是修改测试代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test3</span><span class="params">()</span> <span class="keyword">throws</span> PropertyVetoException </span>&#123;</span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.setAge(<span class="number">1</span>);</span><br><span class="line">    user.addVetoableChangeListener(evt -&gt; &#123;</span><br><span class="line">        System.out.println(evt.getNewValue()+<span class="string">",,"</span>+evt.getOldValue());</span><br><span class="line">        <span class="keyword">if</span> (Objects.isNull(evt.getNewValue())) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> PropertyVetoException(<span class="string">"username 不能为null"</span>, evt);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    user.addPropertyChangeListener(System.out::println);</span><br><span class="line">    user.setUsername(<span class="string">"lisi"</span>);</span><br><span class="line">    user.setUsername(<span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">lisi,,<span class="keyword">null</span></span><br><span class="line">java.beans.PropertyChangeEvent[propertyName=username; oldValue=<span class="keyword">null</span>; newValue=lisi; propagationId=<span class="keyword">null</span>; source=User&#123;username=<span class="string">'lisi'</span>, age=<span class="number">1</span>&#125;]</span><br><span class="line"><span class="keyword">null</span>,,lisi</span><br><span class="line"></span><br><span class="line">java.beans.PropertyVetoException: username 不能为<span class="keyword">null</span></span><br><span class="line"></span><br><span class="line">  at introspector.test.IntrospectorTest.lambda$test3$<span class="number">1</span>(IntrospectorTest.java:<span class="number">78</span>)</span><br><span class="line">  at java.beans.VetoableChangeSupport.fireVetoableChange(VetoableChangeSupport.java:<span class="number">375</span>)</span><br></pre></td></tr></table></figure>
+<p>可以发现当符合“否决”属性变化的条件时，会抛出 <code>PropertyVetoException</code> 异常阻断属性的变化。</p>
+<p>在之前的示例中 <code>userBeanInfo</code> 输出的 <code>EventSetDescriptor</code> 为空，这是因为并未到 <code>User</code> 类中增加事件。现在再测试一下获取 <code>EventSetDescriptor</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Test</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">test1</span><span class="params">()</span> <span class="keyword">throws</span> IntrospectionException </span>&#123;</span><br><span class="line">    BeanInfo userBeanInfo = Introspector.getBeanInfo(User.class, Object.class);</span><br><span class="line">    EventSetDescriptor[] eventSetDescriptors = userBeanInfo.getEventSetDescriptors();</span><br><span class="line">    Stream.of(eventSetDescriptors).forEach(System.out::println);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>输出结果：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">java.beans.EventSetDescriptor[name=propertyChange; inDefaultEventSet; listenerType=<span class="class"><span class="keyword">interface</span> <span class="title">java</span>.<span class="title">beans</span>.<span class="title">PropertyChangeListener</span></span>; getListenerMethod=<span class="keyword">public</span> java.beans.PropertyChangeListener[] introspector.bean.User.getPropertyChangeListeners(); addListenerMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.addPropertyChangeListener(java.beans.PropertyChangeListener); removeListenerMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.removePropertyChangeListener(java.beans.PropertyChangeListener)]</span><br><span class="line">java.beans.EventSetDescriptor[name=vetoableChange; inDefaultEventSet; listenerType=<span class="class"><span class="keyword">interface</span> <span class="title">java</span>.<span class="title">beans</span>.<span class="title">VetoableChangeListener</span></span>; addListenerMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.addVetoableChangeListener(java.beans.VetoableChangeListener); removeListenerMethod=<span class="keyword">public</span> <span class="keyword">void</span> introspector.bean.User.removeVetoableChangeListener(java.beans.VetoableChangeListener)]</span><br></pre></td></tr></table></figure>
+<h2 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h2><p>在 Java 生态飞速发展的今天，很多底层技术细节都被高级框架所屏蔽，而 Java Beans 就是其中一种。也许平时根本就用不到，但是其代码设计和思想理念不应该被忽视。Dubbo 2.7 之后提出了“服务自省”的概念，其灵感就来源于 Java Beans 内省机制。</p>
+<h2 id="References"><a href="#References" class="headerlink" title="References"></a>References</h2><ul>
+<li><a href="https://zh.wikipedia.org/zh-hans/内省_(计算机科学" target="_blank" rel="noopener">https://zh.wikipedia.org/zh-hans/%E5%86%85%E7%9C%81_(%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6)</a>)</li>
+<li><a href="https://yq.aliyun.com/live/1944" target="_blank" rel="noopener">https://yq.aliyun.com/live/1944</a></li>
+<li>《beans.101.pdf》</li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>魏民，信息部售后组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#java" >
+    <span class="tag-code">java</span>
+  </a>
+
+  <a href="/tags#introspector" >
+    <span class="tag-code">introspector</span>
+  </a>
+
+  <a href="/tags#beans" >
+    <span class="tag-code">beans</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/03/02/rpc-achieve/">
+        <span class="nav-arrow">← </span>
+        
+          浅析 RPC 与基本实现
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/03/24/synchronized/">
+        
+          synchronized 实现原理
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#小议-Java-内省机制"><span class="toc-nav-text">小议 Java 内省机制</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#基本概念"><span class="toc-nav-text">基本概念</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#与反射的区别"><span class="toc-nav-text">与反射的区别</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#Java-Beans-内省机制"><span class="toc-nav-text">Java Beans 内省机制</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#核心类库"><span class="toc-nav-text">核心类库</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#属性处理"><span class="toc-nav-text">属性处理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#配置绑定"><span class="toc-nav-text">配置绑定</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-5"><a class="toc-nav-link" href="#在-Spring-中的使用"><span class="toc-nav-text">在 Spring 中的使用</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#类型转换"><span class="toc-nav-text">类型转换</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#事件监听"><span class="toc-nav-text">事件监听</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#其他"><span class="toc-nav-text">其他</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#References"><span class="toc-nav-text">References</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/03/16/java-beans-introspection/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "小议 Java 内省机制",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

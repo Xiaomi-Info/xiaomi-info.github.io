@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      Istio 源码解析系列(二)-服务治理配置生效流程解析 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>Istio 源码解析系列(二)-服务治理配置生效流程解析</h2>
+  <p class="post-date">2018-05-03</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h1><p>本系列文章主要从源码（<a href="https://github.com/istio/istio/tree/35e2b9042fe3d4ebe68772311aa1ebe46b66a1be" target="_blank" rel="noopener">35e2b904</a>）出发，对istio做深入剖析，让大家对istio有更深的认知，从而方便平时排查问题。不了解Service Mesh和Istio的同学请先阅读敖小剑老师如下文章进行概念上的理解：</p>
+<ul>
+<li><a href="https://skyao.io/publication/service-mesh-next-generation-microservice/" target="_blank" rel="noopener">Service Mesh：下一代微服务</a></li>
+<li><a href="https://skyao.io/publication/istio-introduction/" target="_blank" rel="noopener">服务网格新生代-Istio</a></li>
+</ul>
+<h1 id="服务治理配置生效流程解析"><a href="#服务治理配置生效流程解析" class="headerlink" title="服务治理配置生效流程解析"></a>服务治理配置生效流程解析</h1><p>如果大家安装<a href="https://istio.io/docs/guides/bookinfo.html" target="_blank" rel="noopener">bookinfo</a>并执行过文档中的task，可以了解到，所有服务治理流程都是通过istioctl工具，执行指定yaml配置文件来实现。那么从执行istioctl指令到配置文件生效，整个流程到底是什么样的呢？下面给大家做一个简单的介绍。</p>
+<p>整个配置生效的流程图如下所示：<br><img src="https://upload-images.jianshu.io/upload_images/11974228-bfce6d557b593df4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<h2 id="配置文件解析"><a href="#配置文件解析" class="headerlink" title="配置文件解析"></a>配置文件解析</h2><p>以task <a href="https://istio.io/docs/tasks/traffic-management/request-routing.html" target="_blank" rel="noopener">request-routing</a>为例，我们的需求是把名为jason的用户访问reviews服务的版本切换为v2。route-rule-reviews-test-v2.yaml内容如下所示：<br><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">config.istio.io/v1alpha2</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">RouteRule</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line"><span class="attr">  name:</span> <span class="string">reviews-test-v2</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line"><span class="attr">  destination:</span></span><br><span class="line"><span class="attr">    name:</span> <span class="string">reviews</span></span><br><span class="line"><span class="attr">  precedence:</span> <span class="number">2</span></span><br><span class="line"><span class="attr">  match:</span></span><br><span class="line"><span class="attr">    request:</span></span><br><span class="line"><span class="attr">      headers:</span></span><br><span class="line"><span class="attr">        cookie:</span></span><br><span class="line"><span class="attr">          regex:</span> <span class="string">"^(.*?;)?(user=jason)(;.*)?$"</span></span><br><span class="line"><span class="attr">  route:</span></span><br><span class="line"><span class="attr">  - labels:</span></span><br><span class="line"><span class="attr">      version:</span> <span class="string">v2</span></span><br></pre></td></tr></table></figure></p>
+<h3 id="解析并执行istioctl-create指令"><a href="#解析并执行istioctl-create指令" class="headerlink" title="解析并执行istioctl create指令"></a>解析并执行istioctl create指令</h3><p>通过<figure class="highlight plain"><figcaption><span>create -f samples/bookinfo/kube/route-rule-reviews-test-v2.yaml```指令来使规则生效，执行istioctl create指令运行的相关代码入口如下：</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">istio/cmd/istioctl/main.go#postCmd#113行。</span><br><span class="line">```golang</span><br><span class="line">postCmd = &amp;cobra.Command&#123;</span><br><span class="line">		Use:     &quot;create&quot;,</span><br><span class="line">		Short:   &quot;Create policies and rules&quot;,</span><br><span class="line">		Example: &quot;istioctl create -f example-routing.yaml&quot;,</span><br><span class="line">		RunE: func(c *cobra.Command, args []string) error &#123;</span><br><span class="line">                    if len(args) != 0 &#123;</span><br><span class="line">	                  c.Println(c.UsageString())</span><br><span class="line">	                  return fmt.Errorf(&quot;create takes no arguments&quot;)</span><br><span class="line">                    &#125;</span><br><span class="line">                    // varr为转换成功的istio内部model.Config切片，包括routeRule、gateway、ingressRule、egressRule、policy等</span><br><span class="line">                    // others是不能转换成model.Config的k8s object wrapper切片，后面会当成mixer配置来处理</span><br><span class="line">                    varr, others, err := readInputs()</span><br><span class="line">                    if err != nil &#123;</span><br><span class="line">	                    return err</span><br><span class="line">                    &#125;</span><br><span class="line">                    if len(varr) == 0 &amp;&amp; len(others) == 0 &#123;</span><br><span class="line">	                    return errors.New(&quot;nothing to create&quot;)</span><br><span class="line">                    &#125;</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="解析出model-Config切片、crd-istioKind切片流程"><a href="#解析出model-Config切片、crd-istioKind切片流程" class="headerlink" title="解析出model.Config切片、crd.istioKind切片流程"></a>解析出model.Config切片、crd.istioKind切片流程</h3><ul>
+<li><strong>model.Config 为istio配置单元</strong></li>
+<li><strong>crd.IstioKind 对k8s API对象做了一层封装</strong></li>
+</ul>
+<p>readInput函数解析create命令的相关参数（比如-f），如果是-f指定的文件是有效文件，则会调用pilot/pkg/config/kube/crd包的ParseInputs函数解析该文件。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">readInputs</span><span class="params">()</span> <span class="params">([]model.Config, []crd.IstioKind, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> reader io.Reader</span><br><span class="line">        ...</span><br><span class="line">	        <span class="comment">// 读取指定yaml文件</span></span><br><span class="line">		<span class="keyword">if</span> in, err = os.Open(file); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err = in.Close(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">				log.Errorf(<span class="string">"Error: close file from %s, %s"</span>, file, err)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">		reader = in</span><br><span class="line">	... </span><br><span class="line">	input, err := ioutil.ReadAll(reader)</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">return</span> crd.ParseInputs(<span class="keyword">string</span>(input))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>ParseInputs函数内部逻辑：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ParseInputs</span><span class="params">(inputs <span class="keyword">string</span>)</span> <span class="params">([]model.Config, []IstioKind, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> varr []model.Config</span><br><span class="line">	<span class="keyword">var</span> others []IstioKind</span><br><span class="line">	reader := bytes.NewReader([]<span class="keyword">byte</span>(inputs))</span><br><span class="line">	<span class="keyword">var</span> empty = IstioKind&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// We store configs as a YaML stream; there may be more than one decoder.</span></span><br><span class="line">	yamlDecoder := kubeyaml.NewYAMLOrJSONDecoder(reader, <span class="number">512</span>*<span class="number">1024</span>)</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		obj := IstioKind&#123;&#125;</span><br><span class="line">		<span class="comment">// 从reader中反序列化出IstioKind实例obj</span></span><br><span class="line">		err := yamlDecoder.Decode(&amp;obj)</span><br><span class="line">		...</span><br><span class="line">		schema, exists := model.IstioConfigTypes.GetByType(CamelCaseToKabobCase(obj.Kind))</span><br><span class="line">		...</span><br><span class="line">		config, err := ConvertObject(schema, &amp;obj, <span class="string">""</span>)</span><br><span class="line">		...</span><br><span class="line">		<span class="keyword">if</span> err := schema.Validate(config.Spec); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span>, fmt.Errorf(<span class="string">"configuration is invalid: %v"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">		varr = <span class="built_in">append</span>(varr, *config)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> varr, others, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>ParseInputs返回三种类型的值[]Config、[]IstioKind、error。</p>
+<ul>
+<li><strong>istio/pilot/pkg/model#[]Config</strong><br>  其中Config为Istio内部的配置单元，包含匿名ConfigMeta以及ConfigMeta序列化的protobuf message；用户指定的yaml配置会被解析成相应的实例。</li>
+<li><p><strong>pilot/pkg/config/kube/crd#[]IstioKind</strong><br>  IstioKind为k8s API object的一层封装，内部包含两个匿名结构体和一个map：</p>
+  <figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">  <span class="keyword">type</span> IstioKind <span class="keyword">struct</span> &#123;</span><br><span class="line">      meta_v1.TypeMeta   <span class="string">`json:",inline"`</span></span><br><span class="line">      meta_v1.ObjectMeta <span class="string">`json:"metadata"`</span></span><br><span class="line">      Spec               <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125; <span class="string">`json:"spec"`</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>IstioKindk8s.io/apimachinery/pkg/apis/meta/v1#TypeMeta<br>  TypeMeta包含了k8s REST资源类型（如RouteRule）、k8s API版本号（如config.istio.io/v1alpha2）。</li>
+<li>k8s.io/apimachinery/pkg/apis/meta/v1#ObjectMeta<br>  ObjectMeta包含了k8s 资源对象包含的各必要字段，包括Name、Namespace、UID等。</li>
+<li>Spec<br>  一个存储Spec数据的map。</li>
+</ul>
+</li>
+</ul>
+<p>上述代码将string类型的配置反序列化成IstioKind实例后，通过model.IstioConfigTypes.GetByType()方法获取istio的[]ProtoSchema实例。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ConfigDescriptor 是一个由ProtoSchema组成的切片</span></span><br><span class="line"><span class="keyword">type</span> ConfigDescriptor []ProtoSchema</span><br><span class="line"><span class="comment">// ProtoSchema结构体定义了配置类型名称和protobuf消息的双向映射</span></span><br><span class="line"><span class="keyword">type</span> ProtoSchema <span class="keyword">struct</span> &#123;</span><br><span class="line">	Type        <span class="keyword">string</span> <span class="comment">// 配置的proto类型，如route-rule</span></span><br><span class="line">	Plural      <span class="keyword">string</span> <span class="comment">// type复数形式，如route-rules</span></span><br><span class="line">	Group       <span class="keyword">string</span> <span class="comment">// 配置的proto组名，如config</span></span><br><span class="line">	Version     <span class="keyword">string</span> <span class="comment">// 配置API的版本号，如一lpha2</span></span><br><span class="line">	MessageName <span class="keyword">string</span> <span class="comment">// 配置的proto message名，如istio.routing.v1alpha1.RouteRule</span></span><br><span class="line">	Gogo        <span class="keyword">bool</span>   <span class="comment">// 是否为gogo protobuf编码</span></span><br><span class="line">	Validate    <span class="function"><span class="keyword">func</span><span class="params">(config proto.Message)</span> <span class="title">error</span> // <span class="title">protobuf</span>校验函数</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure></p>
+<p>拿到schema后，通过ConvertObject方法，将k8s风格的object实例转换成istio内部的Config模型实例，并根据schema类型调用相应的校验函数对protobuf message进行校验。</p>
+<h2 id="将配置变更提交到k8s"><a href="#将配置变更提交到k8s" class="headerlink" title="将配置变更提交到k8s"></a>将配置变更提交到k8s</h2><p>istio/cmd/istioctl/main.go#postCmd#140行。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> _, config := <span class="keyword">range</span> varr &#123;</span><br><span class="line">    <span class="comment">// 初始化namespace数据</span></span><br><span class="line">	<span class="keyword">if</span> config.Namespace, err = handleNamespaces(config.Namespace); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 构造k8s crd.Client实例，crd.Client包含初始化的apiVerison到restClient映射的map。</span></span><br><span class="line">    <span class="comment">// 对每一种apiVerison（由schema.Group、"istio.io"、schema.Version组成的string，如"config.istio.io/v1alpha2"、"networking.istio.io/v1alpha3"等）</span></span><br><span class="line">    <span class="comment">// 都对应一个crd.restClient实例。</span></span><br><span class="line">	<span class="keyword">var</span> configClient *crd.Client</span><br><span class="line">	<span class="keyword">if</span> configClient, err = newClient(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">var</span> rev <span class="keyword">string</span></span><br><span class="line">	<span class="comment">// 通过k8s REST接口执行配置</span></span><br><span class="line">	<span class="keyword">if</span> rev, err = configClient.Create(config); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"Created config %v at revision %v\n"</span>, config.Key(), rev)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>configClient.Create方法执行流程如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(cl *Client)</span> <span class="title">Create</span><span class="params">(config model.Config)</span> <span class="params">(<span class="keyword">string</span>, error)</span></span> &#123;</span><br><span class="line">	rc, ok := cl.clientset[apiVersionFromConfig(&amp;config)]</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 根据config.Type获取schema</span></span><br><span class="line">	schema, exists := rc.descriptor.GetByType(config.Type)</span><br><span class="line">	...</span><br><span class="line">    <span class="comment">// 调用schema指定的Validate函数，对Spec这个protobuff进行校验</span></span><br><span class="line">	<span class="keyword">if</span> err := schema.Validate(config.Spec); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, multierror.Prefix(err, <span class="string">"validation error:"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// ConvertConfig函数将model.Config实例转换成IstioObject实例。</span></span><br><span class="line">    <span class="comment">// IstioObject是一个k8s API object的接口，crd包下有很多结构体实现了该接口，如MockConfig、RouteRule等</span></span><br><span class="line">	out, err := ConvertConfig(schema, config)</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 检索clientset map，用指定的restClient实例发送POST请求，使配置生效。</span></span><br><span class="line">	obj := knownTypes[schema.Type].object.DeepCopyObject().(IstioObject)</span><br><span class="line">	err = rc.dynamic.Post().</span><br><span class="line">		Namespace(out.GetObjectMeta().Namespace).</span><br><span class="line">		Resource(ResourceName(schema.Plural)).</span><br><span class="line">		Body(out).</span><br><span class="line">		Do().Into(obj)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="string">""</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> obj.GetObjectMeta().ResourceVersion, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="pilot-discovery初始化"><a href="#pilot-discovery初始化" class="headerlink" title="pilot-discovery初始化"></a>pilot-discovery初始化</h2><p>pilot/cmd/pilot-discovery/main.go#57行，构造discoveryServer实例。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line">discoveryServer, err := bootstrap.NewServer(serverArgs)</span><br><span class="line"><span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Errorf(<span class="string">"failed to create discovery service: %v"</span>, err)</span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure></p>
+<h3 id="监听k8s相关资源变更"><a href="#监听k8s相关资源变更" class="headerlink" title="监听k8s相关资源变更"></a>监听k8s相关资源变更</h3><p>NewServer函数内部流程如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewServer</span><span class="params">(args PilotArgs)</span> <span class="params">(*Server, error)</span></span> &#123;</span><br><span class="line">    ...</span><br><span class="line">	<span class="comment">// 初始化pilot配置控制器，根据pilot-discovery启动指令，初始化配置控制器。</span></span><br><span class="line">	<span class="comment">// 默认只会初始化kube配置控制器（kubeConfigController，它实现了model.ConfigStoreCache接口）。</span></span><br><span class="line">	<span class="comment">// kubeConfigController会watch k8s pod registration 、ingress resources、traffic rules等变化。</span></span><br><span class="line">	<span class="keyword">if</span> err := s.initConfigController(&amp;args); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 初始化服务发现控制器，控制器内部会构造K8sServiceControllers。</span></span><br><span class="line">	<span class="keyword">if</span> err := s.initServiceControllers(&amp;args); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 初始化DiscoveryService实例，实例内部注册了envoy xDS路由。</span></span><br><span class="line">	<span class="comment">// kubeConfigController中watch到变更后，envoy轮询xDS接口，获取变更。</span></span><br><span class="line">	<span class="keyword">if</span> err := s.initDiscoveryService(&amp;args); err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="注册envoy-xDS路由"><a href="#注册envoy-xDS路由" class="headerlink" title="注册envoy xDS路由"></a>注册envoy xDS路由</h3><p>initDiscoveryServic方法内部流程如下：</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *Server)</span> <span class="title">initDiscoveryService</span><span class="params">(args *PilotArgs)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 构造pilot runtime environment。environment中保存了kubeConfigController、serviceController等。</span></span><br><span class="line">	environment := model.Environment&#123;</span><br><span class="line">		Mesh:             s.mesh,</span><br><span class="line">		IstioConfigStore: model.MakeIstioStore(s.configController),</span><br><span class="line">		ServiceDiscovery: s.ServiceController,</span><br><span class="line">		ServiceAccounts:  s.ServiceController,</span><br><span class="line">		MixerSAN:         s.mixerSAN,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 构造DiscoveryService实例。</span></span><br><span class="line">	discovery, err := envoy.NewDiscoveryService(</span><br><span class="line">		s.ServiceController,</span><br><span class="line">		s.configController,</span><br><span class="line">		environment,</span><br><span class="line">		args.DiscoveryOptions,</span><br><span class="line">	)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>NewDiscoveryService方法内部流程如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDiscoveryService</span><span class="params">(ctl model.Controller, configCache model.ConfigStoreCache,</span></span></span><br><span class="line"><span class="function"><span class="params">	environment model.Environment, o DiscoveryServiceOptions)</span> <span class="params">(*DiscoveryService, error)</span></span> &#123;</span><br><span class="line">	out := &amp;DiscoveryService&#123;</span><br><span class="line">		Environment: environment, <span class="comment">// 将environment赋值给Environment成员。</span></span><br><span class="line">		sdsCache:    newDiscoveryCache(<span class="string">"sds"</span>, o.EnableCaching),</span><br><span class="line">		cdsCache:    newDiscoveryCache(<span class="string">"cds"</span>, o.EnableCaching),</span><br><span class="line">		rdsCache:    newDiscoveryCache(<span class="string">"rds"</span>, o.EnableCaching),</span><br><span class="line">		ldsCache:    newDiscoveryCache(<span class="string">"lds"</span>, o.EnableCaching),</span><br><span class="line">	&#125;</span><br><span class="line">	container := restful.NewContainer()</span><br><span class="line">	...</span><br><span class="line">	<span class="comment">// 注册web service容器。</span></span><br><span class="line">	out.Register(container)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>out.Register方法内部流程如下：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ds *DiscoveryService)</span> <span class="title">Register</span><span class="params">(container *restful.Container)</span></span> &#123;</span><br><span class="line">	ws := &amp;restful.WebService&#123;&#125;</span><br><span class="line">	ws.Produces(restful.MIME_JSON)</span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册Envoy xDS（SDS、CDS、RDS、LDS）路由</span></span><br><span class="line">	<span class="comment">// 注册 Envoy RDS(Route discovery service)路由。https://www.envoyproxy.io/docs/envoy/latest/api-v1/route_config/rds</span></span><br><span class="line">	<span class="comment">// RDS可以与SDS、EDS协同工作，来构建用户指定的路由拓扑（如流量切换、蓝绿部署等）。</span></span><br><span class="line">	ws.Route(ws.</span><br><span class="line">		GET(fmt.Sprintf(<span class="string">"/v1/routes/&#123;%s&#125;/&#123;%s&#125;/&#123;%s&#125;"</span>, RouteConfigName, ServiceCluster, ServiceNode)).</span><br><span class="line">		To(ds.ListRoutes).</span><br><span class="line">		Doc(<span class="string">"RDS registration"</span>).</span><br><span class="line">		Param(ws.PathParameter(RouteConfigName, <span class="string">"route configuration name"</span>).DataType(<span class="string">"string"</span>)).</span><br><span class="line">		Param(ws.PathParameter(ServiceCluster, <span class="string">"client proxy service cluster"</span>).DataType(<span class="string">"string"</span>)).</span><br><span class="line">		Param(ws.PathParameter(ServiceNode, <span class="string">"client proxy service node"</span>).DataType(<span class="string">"string"</span>)))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 注册 Envoy LDS(Listener discovery service)路由。https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/lds</span></span><br><span class="line">	<span class="comment">// Envoy可以从通过这个接口动态获取需要新的Listener信息，从而在运行时动态实例化Listener。</span></span><br><span class="line">	<span class="comment">// Listener可以用来处理不同的代理任务（如速率限制、HTTP连接管理、原始TCP代理等）。</span></span><br><span class="line">	ws.Route(ws.</span><br><span class="line">		GET(fmt.Sprintf(<span class="string">"/v1/listeners/&#123;%s&#125;/&#123;%s&#125;"</span>, ServiceCluster, ServiceNode)).</span><br><span class="line">		To(ds.ListListeners).</span><br><span class="line">		Doc(<span class="string">"LDS registration"</span>).</span><br><span class="line">		Param(ws.PathParameter(ServiceCluster, <span class="string">"client proxy service cluster"</span>).DataType(<span class="string">"string"</span>)).</span><br><span class="line">		Param(ws.PathParameter(ServiceNode, <span class="string">"client proxy service node"</span>).DataType(<span class="string">"string"</span>)))</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>RDS路由绑定的ds.ListRoutes方法读取environment中相关配置，返回给Envoy实例需要配置的路由信息。</li>
+<li>LDS路由绑定的ds.ListListeners方法读取environment中相关配置，返回给Envoy实例需要的Listener信息。<br>Envoy实例轮询xDS接口，获取变更的配置信息，最终执行具体的服务治理策略。</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>结合上文中贴出的流程图<br><img src="https://upload-images.jianshu.io/upload_images/11974228-bfce6d557b593df4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="image.png"></p>
+<p>总结如下：</p>
+<ul>
+<li>istio的piolit-discovery启动<ol>
+<li>初始化kube配置控制器，控制器中watch k8s pod、ingress以及流量管理规则等变更。</li>
+<li>初始化envoy各发现服务，注册envoy xDS路由，绑定相应的配置变更handler。</li>
+<li>pilot-discovery等待envoy实例轮询xDS接口，将变更返给envoy实例。</li>
+</ol>
+</li>
+<li>用户通过istioctl应用配置<ol>
+<li>istioctl解析指令（create、delete等），通过k8s REST接口，将变更推送的k8s。</li>
+<li>k8s产生变更，变更同步到kubeConfigController中。</li>
+<li>envoy实例轮询xDS接口，应用变更。</li>
+</ol>
+</li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>郑伟，小米信息技术部基础架构组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP体系、内网OA体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#istio" >
+    <span class="tag-code">istio</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2018/05/03/istio-src-1/">
+        <span class="nav-arrow">← </span>
+        
+          Istio 源码解析系列(一)-istio源码架构介绍及开发环境搭建
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2018/05/11/istio-src-3/">
+        
+          istio源码解析系列(三)-Mixer工作流程浅析
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#服务治理配置生效流程解析"><span class="toc-nav-text">服务治理配置生效流程解析</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#配置文件解析"><span class="toc-nav-text">配置文件解析</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#解析并执行istioctl-create指令"><span class="toc-nav-text">解析并执行istioctl create指令</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#解析出model-Config切片、crd-istioKind切片流程"><span class="toc-nav-text">解析出model.Config切片、crd.istioKind切片流程</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#将配置变更提交到k8s"><span class="toc-nav-text">将配置变更提交到k8s</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#pilot-discovery初始化"><span class="toc-nav-text">pilot-discovery初始化</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#监听k8s相关资源变更"><span class="toc-nav-text">监听k8s相关资源变更</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#注册envoy-xDS路由"><span class="toc-nav-text">注册envoy xDS路由</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2018/05/03/istio-src-2/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "Istio 源码解析系列(二)-服务治理配置生效流程解析",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

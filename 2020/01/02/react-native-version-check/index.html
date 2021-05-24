@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      React Native 启动版本检查机制探究 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>React Native 启动版本检查机制探究</h2>
+  <p class="post-date">2020-01-02</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="React-Native-启动版本检查机制探究"><a href="#React-Native-启动版本检查机制探究" class="headerlink" title="React Native 启动版本检查机制探究"></a>React Native 启动版本检查机制探究</h1><p><strong>[作者简介]</strong> 陈久林，信息部前端组，主要负责服务体系前端开发。</p>
+<h2 id="引子"><a href="#引子" class="headerlink" title="引子"></a>引子</h2><p>有同学反馈 React Native（简称 RN） 项目启动报错，提示版本不匹配，错误截图如下：</p>
+<img src="/2020/01/02/react-native-version-check/mismatch.png">
+<p>经过一番排 (xia) 查 (gao)，最后发现是本地打包了老版本 js 文件，和项目本身依赖的版本不同导致，删除本地的老版本文件即可。</p>
+<p>通过这个错误，我们可以发现 RN 在启动时是有版本检查的，具体机制如何呢，下面我们一起跟着源码走一遍。</p>
+<blockquote>
+<p>至于为何本地会打包一个老的 js 文件，以及为何这么多年过去了今天才出问题，这是另一个话题，暂且忽略</p>
+</blockquote>
+<h2 id="版本检测机制"><a href="#版本检测机制" class="headerlink" title="版本检测机制"></a>版本检测机制</h2><h3 id="报错的位置"><a href="#报错的位置" class="headerlink" title="报错的位置"></a>报错的位置</h3><p>通过搜索关键字 <code>React Native version mismatch</code> 可以发现检测的最终代码在 <code>Libraries/Core/ReactNativeVersionCheck.js</code> 中：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> Platform <span class="keyword">from</span> <span class="string">'../Utilities/Platform'</span>;</span><br><span class="line"><span class="keyword">const</span> ReactNativeVersion = <span class="built_in">require</span>(<span class="string">'./ReactNativeVersion'</span>);</span><br><span class="line"></span><br><span class="line">exports.checkVersions = <span class="function"><span class="keyword">function</span> <span class="title">checkVersions</span>(<span class="params"></span>): <span class="title">void</span> </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> nativeVersion = Platform.constants.reactNativeVersion;</span><br><span class="line">    <span class="keyword">if</span> (</span><br><span class="line">        ReactNativeVersion.version.major !== nativeVersion.major ||</span><br><span class="line">        ReactNativeVersion.version.minor !== nativeVersion.minor</span><br><span class="line">    ) &#123;</span><br><span class="line">        <span class="built_in">console</span>.error(</span><br><span class="line">            <span class="string">`React Native version mismatch.\n\nJavaScript version: <span class="subst">$&#123;_formatVersion(</span></span></span><br><span class="line"><span class="string"><span class="subst">        ReactNativeVersion.version,</span></span></span><br><span class="line"><span class="string"><span class="subst">      )&#125;</span>\n`</span> +</span><br><span class="line"><span class="string">`Native version: <span class="subst">$&#123;_formatVersion(nativeVersion)&#125;</span>\n\n`</span> +</span><br><span class="line">            <span class="string">'Make sure that you have rebuilt the native code. If the problem '</span> +</span><br><span class="line">            <span class="string">'persists try clearing the Watchman and packager caches with '</span> +</span><br><span class="line">            <span class="string">' `watchman watch-del-all &amp;&amp; react-native start --reset-cache` .'</span>,</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>该方法对比了 <code>ReactNativeVersion.version</code> 和 <code>Platform.constants.reactNativeVersion</code> 两个的 major 和 minor，当这两个值不匹配时即会抛出该异常。</p>
+<blockquote>
+<p>如果版本号是 0.59.9，那么 major 就是 59，minor 就是 9。感觉 RN 就没打算把最前面的 0 去掉（手动捂脸</p>
+<p>同时， <code>checkVersion</code> 是在启动时候加载，这部分代码大家自行搜索即可看到，不做分析</p>
+</blockquote>
+<h3 id="ReactNativeVersion-version"><a href="#ReactNativeVersion-version" class="headerlink" title="ReactNativeVersion.version"></a>ReactNativeVersion.version</h3><p>那么这两个值分别代表的什么呢，首先查看 <code>ReactNativeVersion.version</code> ，它在同目录下的 <a href="https://github.com/facebook/react-native/blob/master/Libraries/Core/ReactNativeVersion.js" target="_blank" rel="noopener">Libraries/Core/ReactNativeVersion.js</a> 中声明：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">exports.version = &#123;</span><br><span class="line">    major: <span class="number">0</span>,</span><br><span class="line">    minor: <span class="number">0</span>,</span><br><span class="line">    patch: <span class="number">0</span>,</span><br><span class="line">    prerelease: <span class="literal">null</span>,</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>嗯，非常的清晰明了。简直写了跟没写一样嘛，不急，反正我们知道了，这个值是在 js 文件中，会随着最终的打包进入 bundle.js 中。</p>
+<h3 id="Platform-constants-reactNativeVersion"><a href="#Platform-constants-reactNativeVersion" class="headerlink" title="Platform.constants.reactNativeVersion"></a>Platform.constants.reactNativeVersion</h3><p>根据引用，我们找到 <a href="https://github.com/facebook/react-native/blob/master/Libraries/Utilities/Platform.android.js" target="_blank" rel="noopener">Libraries/Utilities/Platform.android.js</a> 这个文件，关键内容如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> NativePlatformConstantsAndroid <span class="keyword">from</span> <span class="string">'./NativePlatformConstantsAndroid'</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> Platform = &#123;</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    get constants() &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">this</span>.__constants == <span class="literal">null</span>) &#123;</span><br><span class="line">                <span class="keyword">this</span>.__constants = NativePlatformConstantsAndroid.getConstants();</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.__constants;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="built_in">module</span>.exports = Platform;</span><br></pre></td></tr></table></figure>
+<p>又导向了 <code>NativePlatformConstantsAndroid.getConstants()</code> ，在 <a href="https://github.com/facebook/react-native/blob/master/Libraries/Utilities/NativePlatformConstantsAndroid.js" target="_blank" rel="noopener">Libraries/Utilities/NativePlatformConstantsAndroid.js</a> 中，如下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> * <span class="keyword">as</span> TurboModuleRegistry <span class="keyword">from</span> <span class="string">'../TurboModule/TurboModuleRegistry'</span>;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> (TurboModuleRegistry.getEnforcing &lt; Spec &gt; (</span><br><span class="line">    <span class="string">'PlatformConstants'</span>,</span><br><span class="line">): Spec);</span><br></pre></td></tr></table></figure>
+<p>犹抱琵琶半遮面，通过 <code>TurboModuleRegistry.getEnforcing(&#39;PlatformConstants&#39;)</code> 获取到，继续往下 <a href="https://github.com/facebook/react-native/blob/master/Libraries/TurboModule/TurboModuleRegistry.js" target="_blank" rel="noopener">Libraries/TurboModule/TurboModuleRegistry.js</a>：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> NativeModules = <span class="built_in">require</span>(<span class="string">'../BatchedBridge/NativeModules'</span>);</span><br><span class="line"><span class="keyword">const</span> turboModuleProxy = global.__turboModuleProxy;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="function"><span class="keyword">function</span> <span class="title">get</span> &lt; <span class="title">T</span>: <span class="title">TurboModule</span> &gt; (<span class="params">name: string</span>): ? <span class="title">T</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!global.RN$Bridgeless) &#123;</span><br><span class="line">        <span class="comment">// Backward compatibility layer during migration.</span></span><br><span class="line">        <span class="keyword">const</span> legacyModule = NativeModules[name];</span><br><span class="line">        <span class="keyword">if</span> (legacyModule != <span class="literal">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> ((legacyModule: any): T);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (turboModuleProxy != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">const</span> <span class="built_in">module</span>: ? T = turboModuleProxy(name);</span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">module</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="function"><span class="keyword">function</span> <span class="title">getEnforcing</span> &lt; <span class="title">T</span>: <span class="title">TurboModule</span> &gt; (<span class="params">name: string</span>): <span class="title">T</span> </span>&#123;</span><br><span class="line">    <span class="keyword">const</span> <span class="built_in">module</span> = get(name);</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">module</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一大坨东西，就一个目标，获取一个原生模块，名字叫 <code>PlatformConstants</code> ，那找到这个原生模块就能揭秘了，通过搜索 <code>PlatformConstants</code> ，可以找到它的原生实现在 <a href="https://github.com/facebook/react-native/blob/3b6f6ca4d5fcee6f1bc6d6242e3e2ef136e4d546/ReactAndroid/src/main/java/com/facebook/react/modules/systeminfo/AndroidInfoModule.java" target="_blank" rel="noopener">ReactAndroid/src/main/java/com/facebook/react/modules/systeminfo/AndroidInfoModule.java</a>，关键代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="keyword">public</span> <span class="meta">@Nullable</span> <span class="function">Map&lt;String, Object&gt; <span class="title">getConstants</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    HashMap&lt;String, Object&gt; constants = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    constants.put(<span class="string">"reactNativeVersion"</span>, ReactNativeVersion.VERSION);</span><br><span class="line"></span><br><span class="line">    ...</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> constants;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一步之遥了，继续看同目录下的 <a href="https://github.com/facebook/react-native/blob/3b6f6ca4d5/ReactAndroid/src/main/java/com/facebook/react/modules/systeminfo/ReactNativeVersion.java" target="_blank" rel="noopener">ReactAndroid/src/main/java/com/facebook/react/modules/systeminfo/ReactNativeVersion.java</a> ：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ReactNativeVersion</span> </span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Map&lt;String, Object&gt; VERSION = MapBuilder.&lt;String, Object&gt;of(</span><br><span class="line">        <span class="string">"major"</span>, <span class="number">0</span>,</span><br><span class="line">        <span class="string">"minor"</span>, <span class="number">0</span>,</span><br><span class="line">        <span class="string">"patch"</span>, <span class="number">0</span>,</span><br><span class="line">        <span class="string">"prerelease"</span>, <span class="keyword">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>和 js 那边的一样，都是 0，这个待会再论。可以看出， <code>Platform.constants.reactNativeVersion</code> 是在 java 侧定义的，最终在原生代码中，我们在 build.gradle 文件中引用的 <code>com.facebook.react:react-native:0.59.9</code> 则包含了这部分代码。</p>
+<h3 id="阶段性总结"><a href="#阶段性总结" class="headerlink" title="阶段性总结"></a>阶段性总结</h3><p>可以看出，在 js 侧有个版本号，同时在 java 侧也有个版本号，两者会在启动的时候进行判断，如果不相同就会抛出错误。</p>
+<p>js 和 java 是两个依赖，js 部分在 <code>package.json</code> 中进行依赖，java 部分在 <code>android/app/build.gradle</code> 中依赖，两者必须匹配才能很好的工作，所以有了上述的检查工作。</p>
+<blockquote>
+<p>通过对启动源码分析，发现其实仅在开发环境才进行检查，生产环境则没有这段</p>
+<p>一般而言，开发环境都会执行比生产环境更为严格的检测，确保开发阶段错误及时暴露，而在生产环境则会去掉与主功能无关的代码，保证运行时的最大效率。这可以说是大部分库的一个处理手段，严开发宽发布，值得我们学习借鉴</p>
+</blockquote>
+<h3 id="版本号如何设置"><a href="#版本号如何设置" class="headerlink" title="版本号如何设置"></a>版本号如何设置</h3><p>前面源码查看，发现版本号都是 0，那么具体版本号是如何设置上去的呢，大家可以查看下这个目录 <a href="https://github.com/facebook/react-native/tree/3b6f6ca4d5fcee6f1bc6d6242e3e2ef136e4d546/scripts/versiontemplates" target="_blank" rel="noopener">scripts/versiontemplates/</a>，其下则是版本号设置的模版，真正的操作则是在 <a href="https://github.com/facebook/react-native/blob/master/scripts/bump-oss-version.js#L60" target="_blank" rel="noopener">scripts/bump-oss-version.js#L60</a> 中进行的，这个脚本接受一个版本号，然后填充前面的模版，并覆盖项目中对应的文件。这个脚本是在发版的时候执行的，详情见 <a href="https://github.com/facebook/react-native/blob/master/Releases.md#step-2-cut-a-release-branch-and-push-to-github" target="_blank" rel="noopener">step-2-cut-a-release-branch-and-push-to-github</a>，至此一切就都清楚了。</p>
+<p>所以版本号是在发布的时候通过脚本设置上去的，通过模版的方式进行统一设置，避免人工修改遗漏</p>
+<blockquote>
+<p>模版部分就是简单替换，并未引用额外的模版引擎，能简单处理就绝不搞复杂，这点值得我们学习</p>
+<p>脚本很多都是 js 写的，这样非常容易阅读和修改，我们也可以多用 js 来处理脚本，不能提到脚本就 bash、python 的，其实 js 也很流行</p>
+</blockquote>
+<h3 id="什么情况下会发生这个错误"><a href="#什么情况下会发生这个错误" class="headerlink" title="什么情况下会发生这个错误"></a>什么情况下会发生这个错误</h3><p>我遇到的这例是因为该同学使用 RN 0.55.4 进行了手动打包，并将打包后的 js 文件上传了仓库，后来升级 RN 到 0.59.9，开发环境下，设备因为某些原因没有连接到对应的 packager，然后直接使用了本地的 js 文件，从而产生了该问题。</p>
+<p>从前面源码分析来看，如果开发时 packager 启动了错误版本，也是可能产生该问题的。可以理解该机制就是确保当前运行的 App 从 packager 下载到的 js 文件版本是一致的，避免大家在错误的版本上继续开发，导致问题蔓延，不便于最后问题的排查。</p>
+<p>当我们遇到这个问题时，一般都是 packager 启动了错误版本导致的。其次，除非你知道你在干什么，否则是严禁手动生成 js 的包，这部分都应该交由 RN 的打包脚本来执行和维护，并且是不能提交仓库的。</p>
+<h3 id="为什么有这个检查"><a href="#为什么有这个检查" class="headerlink" title="为什么有这个检查"></a>为什么有这个检查</h3><p>并没有找到相关的说明，但可以推测下。个人认为是 RN 的开发模式导致的，在开发阶段，电脑上会启动一个 server，也就是上面提到的 packager，用来分发最新的 js 文件，这也是 RN 开发阶段可以快速更新代码的基础，因为分发是独立的，所以这部分是有可能发生版本不一致的的问题，而版本不一致是不影响大部分开发，因为 API 大部分是兼容性设计，如果放任这种行为，到了开发后期出现问题，排查将会非常艰难，所以这也是提前暴露问题。而在发布阶段，因为都是脚本自动执行，这部分相对安全很多。</p>
+<blockquote>
+<p>很多时候，一些疑难问题都是由低级错误导致的，只是问题在初期隐藏，到了中后期才爆发，这时再去排查就非常耗时了。特别对于 RN 这种开源项目，如果 issues 中有很多是低级错误导致的 “疑难杂症”，这是对资源的巨大浪费。从这点来看，这些基本检测还是很有必要的</p>
+</blockquote>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>在开发环境，RN 启动阶段，会对 js 和 java 两边的版本号进行校验，匹配后才开始真正的系统启动流程。增加这一步检查，是确保开发基础环境的一致，保证开发顺利进行。</p>
+<p>同时在追踪源码的过程中，也能学到很多知识，包括库的设计，开发环境与生产环境的差异化，模版设计等等。对于开源项目的错误，很多时候我们可以通过源码来了解问题的本质，这对于我们的开发和学习有很大的帮助。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>陈久林，信息部前端组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#React Native" >
+    <span class="tag-code">React Native</span>
+  </a>
+
+  <a href="/tags#React" >
+    <span class="tag-code">React</span>
+  </a>
+
+  <a href="/tags#Javascript" >
+    <span class="tag-code">Javascript</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/01/02/distributed-transaction/">
+        <span class="nav-arrow">← </span>
+        
+          分布式事务，这一篇就够了
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/01/03/contribution/">
+        
+          投稿须知
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#React-Native-启动版本检查机制探究"><span class="toc-nav-text">React Native 启动版本检查机制探究</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#引子"><span class="toc-nav-text">引子</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#版本检测机制"><span class="toc-nav-text">版本检测机制</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#报错的位置"><span class="toc-nav-text">报错的位置</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#ReactNativeVersion-version"><span class="toc-nav-text">ReactNativeVersion.version</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#Platform-constants-reactNativeVersion"><span class="toc-nav-text">Platform.constants.reactNativeVersion</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#阶段性总结"><span class="toc-nav-text">阶段性总结</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#版本号如何设置"><span class="toc-nav-text">版本号如何设置</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#什么情况下会发生这个错误"><span class="toc-nav-text">什么情况下会发生这个错误</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#为什么有这个检查"><span class="toc-nav-text">为什么有这个检查</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/01/02/react-native-version-check/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "React Native 启动版本检查机制探究",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

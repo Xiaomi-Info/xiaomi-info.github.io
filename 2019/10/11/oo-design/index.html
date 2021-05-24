@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      设计模式基础之——面向对象的设计过程 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>设计模式基础之——面向对象的设计过程</h2>
+  <p class="post-date">2019-10-11</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><hr>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>我一直认为分享的目的不是炫技。</p>
+<ul>
+<li>一是，自我学习的总结。</li>
+<li>二是，降低他人的学习成本。</li>
+<li>三是，别人对自己学习结果的审核。</li>
+</ul>
+<p>同时，本次分享有下面四个要素：</p>
+<table>
+<thead>
+<tr>
+<th>观点</th>
+<th>本次分享的观点是一个软件工程中的思维方法，不限于编程语言</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>探讨</strong></td>
+<td><strong>我可能理解错的，或者大家没理解的，欢迎大家可以积极留言，尽可能多互动，目的增加理解</strong></td>
+</tr>
+<tr>
+<td><strong>理解</strong></td>
+<td><strong>真的希望大家能理解</strong></td>
+</tr>
+<tr>
+<td><strong>运用</strong></td>
+<td><strong>最重要的，如果你觉着有帮助，一定要去在实际业务中实战</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>工作中，几乎大家经常抱怨别人写的代码：</p>
+<ul>
+<li>没法改</li>
+<li>耦合高</li>
+<li>无法扩展</li>
+</ul>
+<blockquote>
+<p>今天就来探讨如何<strong>克服</strong>上面的问题～</p>
+</blockquote>
+<h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><p>首先问个问题：</p>
+<blockquote>
+<p>平常工作中来了一个业务需求，我们是如何开始写代码的？</p>
+</blockquote>
+<p>我推测大多数人可能：</p>
+<ul>
+<li>1、梳理业务</li>
+<li>2、设计数据库、接口、缓存</li>
+<li>3、评审</li>
+<li>4、于是就开始了 <code>怎么怎么样...如果怎么怎么样...怎么怎么样...</code>愉快的码代码的过程</li>
+</ul>
+<blockquote>
+<p>此处有人觉着有啥问题么？</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">备注：说出来问题的，本次分享就可以略过了~</span><br></pre></td></tr></table></figure>
+<h3 id="一个简单的业务场景"><a href="#一个简单的业务场景" class="headerlink" title="一个简单的业务场景"></a>一个简单的业务场景</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">比如产品提了个需求：</span><br><span class="line">描述“我一个同事”一天的生活，简单来看看他一天干些啥。</span><br><span class="line"></span><br><span class="line">1.0 饿了吃饭</span><br><span class="line">1.1 到点吃饭</span><br><span class="line"></span><br><span class="line">2.0 渴了喝水</span><br><span class="line">2.1 到点喝水</span><br><span class="line"></span><br><span class="line">3.0 困了睡觉</span><br><span class="line">3.1 到点睡觉</span><br><span class="line">3.2 有可能一个人睡觉，也有可能... 是吧？复杂</span><br></pre></td></tr></table></figure>
+<p>刚开始，一个业务逻辑从头写到尾</p>
+<img src="/2019/10/11/oo-design/20191020234013.png">
+<p>进阶，一个业务逻辑(拆成多个函数)从头写到尾：<br><img src="/2019/10/11/oo-design/20191020234051.png"><br>再进阶，一个业务逻辑(引入类)从头写到尾：<br><img src="/2019/10/11/oo-design/20191020234118.png"><br>再进阶，一个业务逻辑(拆成多个类方法)从头写到尾，也许、可能、貌似、猜测大多数人停留到了这个阶段。</p>
+<blockquote>
+<p>问题：某一天多了社交的能力，咋办？</p>
+</blockquote>
+<img src="/2019/10/11/oo-design/20191020234526.png">
+<p>再进阶，一个业务逻辑(拆成多类)从头写到尾：<br><img src="/2019/10/11/oo-design/20191020234848.png"><br>最终，一个业务逻辑(拆成类、抽象类、接口)从头写到尾：<br><img src="/2019/10/11/oo-design/20191020235015.png"></p>
+<blockquote>
+<p>思考 🤔：上面的代码就没啥问题了吗？</p>
+</blockquote>
+<p>上面就是面向对象设计的代码结果。</p>
+<blockquote>
+<p>所以，如何设计出完全面向对象的代码？</p>
+</blockquote>
+<h2 id="代码建模"><a href="#代码建模" class="headerlink" title="代码建模"></a>代码建模</h2><blockquote>
+<p>什么是代码建模？</p>
+</blockquote>
+<p>把业务抽象成事物(类 class、抽象类 abstact class)和行为(接口 interface)的过程。</p>
+<h3 id="实栗-🌰-分析"><a href="#实栗-🌰-分析" class="headerlink" title="实栗 🌰 分析"></a>实栗 🌰 分析</h3><p>又来看一个实际的业务场景：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">最近“我一个同事”开始创业了，刚创立了一家电商公司，B2C，自营书籍《3分钟学会交际》。最近开始写提交订单的代码。</span><br><span class="line"></span><br><span class="line">⚠️注意场景 1.刚创业 2.简单的单体应用 3.此处不探讨架构</span><br></pre></td></tr></table></figure>
+<p>一般来说，我们根据业务需求一顿分析，开始定义接口 API、设计数据库、缓存、技术评审等就开始码代码了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">接口参数：</span><br><span class="line">uid</span><br><span class="line">address_id</span><br><span class="line">coupon_id</span><br><span class="line">.etc</span><br><span class="line"></span><br><span class="line">业务逻辑：</span><br><span class="line">参数校验-&gt;</span><br><span class="line">地址校验-&gt;</span><br><span class="line">其他校验-&gt;</span><br><span class="line">写订单表-&gt;</span><br><span class="line">写订单商品信息表-&gt;</span><br><span class="line">写日志-&gt;</span><br><span class="line">扣减商品库存-&gt;</span><br><span class="line">清理购物车-&gt;</span><br><span class="line">扣减各种促销优惠活动的库存-&gt;</span><br><span class="line">使用优惠券-&gt;</span><br><span class="line">其他营销逻辑等等-&gt;</span><br><span class="line">发送消息-&gt;</span><br><span class="line">等等...</span><br></pre></td></tr></table></figure>
+<p>就开始写代码了<code>怎么怎么样...如果怎么怎么样...怎么怎么样...</code>一蹴而就、思路清晰、逻辑清楚、很快搞定完代码，很优秀是不是，值得鼓励。</p>
+<p>但是，上面的结果就是大概所有人都见过的连续上千行的代码等等。上面的流程没啥问题吗，那正确的做法是什么了？就是接着要说的<strong>代码建模</strong>。</p>
+<p>我们根据上面的场景，开始建模。</p>
+<h3 id="业务分析少不了"><a href="#业务分析少不了" class="headerlink" title="业务分析少不了"></a>业务分析少不了</h3><p>同样，首先，我们看看<code>提交订单</code>这个业务场景要做的事情:</p>
+<blockquote>
+<p>换个角度看业务其实很简单：根据用户相关信息生成一个订单。</p>
+</blockquote>
+<ol>
+<li>梳理得到业务逻辑</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">参数校验-&gt;</span><br><span class="line">地址校验-&gt;</span><br><span class="line">其他校验-&gt;</span><br><span class="line">写订单表-&gt;</span><br><span class="line">写订单商品信息表-&gt;</span><br><span class="line">写日志-&gt;</span><br><span class="line">扣减商品库存-&gt;</span><br><span class="line">清理购物车-&gt;</span><br><span class="line">扣减各种促销优惠活动的库存-&gt;</span><br><span class="line">使用优惠券-&gt;</span><br><span class="line">其他营销逻辑等等-&gt;</span><br><span class="line">发送消息-&gt;</span><br><span class="line">等等...</span><br></pre></td></tr></table></figure>
+<ol start="2">
+<li>梳理业务逻辑依赖信息</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">用户信息</span><br><span class="line">商品信息</span><br><span class="line">地址信息</span><br><span class="line">优惠券信息</span><br><span class="line">等等...</span><br></pre></td></tr></table></figure>
+<p>再次回归概念</p>
+<blockquote>
+<p>什么是代码建模？把业务抽象成事物(类 class、抽象类 abstact class)和行为(接口 interface)的过程。</p>
+</blockquote>
+<h3 id="获取事物"><a href="#获取事物" class="headerlink" title="获取事物"></a>获取事物</h3><p>比如我们把订单生成的过程可以想象成<code>机器人</code>，一个生成订单的<code>订单生成机器人</code>，或者订单生成机器啥的，这样我们就得到了<code>代码建模</code>过程中的一个事物。</p>
+<p>从而我们就可以把这个事物转化成一个类(或结构体)，或者抽象类。</p>
+<img src="/2019/10/11/oo-design/20191020223812.jpg">
+<h3 id="获取行为"><a href="#获取行为" class="headerlink" title="获取行为"></a>获取行为</h3><p>这些操作就是上面机器人要做的事情。</p>
+<p>事物有了：<code>订单生成机器人</code><br>行为呢？毫无疑问就是上面各种业务逻辑。把具体的行为抽象成一个订单创建行为接口：</p>
+<img src="/2019/10/11/oo-design/20191020224230.jpg">
+<h3 id="得到-UML"><a href="#得到-UML" class="headerlink" title="得到 UML"></a>得到 UML</h3><img src="/2019/10/11/oo-design/20191031195921.jpg">
+<h3 id="设计代码"><a href="#设计代码" class="headerlink" title="设计代码"></a>设计代码</h3><ol>
+<li>定义一个类</li>
+</ol>
+<img src="/2019/10/11/oo-design/20191020235309.png">
+<ol start="2">
+<li>定义一个订单创建行为的接口</li>
+</ol>
+<img src="/2019/10/11/oo-design/20191020235643.png">
+<ol start="3">
+<li>定义具体的不同订单创建行为类</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">参数校验-&gt;</span><br><span class="line">地址校验-&gt;</span><br><span class="line">其他校验-&gt;</span><br><span class="line">写订单表-&gt;</span><br><span class="line">写订单商品信息表-&gt;</span><br><span class="line">写日志-&gt;</span><br><span class="line">扣减商品库存-&gt;</span><br><span class="line">清理购物车-&gt;</span><br><span class="line">扣减各种促销优惠活动的库存-&gt;</span><br><span class="line">使用优惠券-&gt;</span><br><span class="line">其他营销逻辑等等-&gt;</span><br><span class="line">发送消息-&gt;</span><br><span class="line">等等...</span><br></pre></td></tr></table></figure>
+<img src="/2019/10/11/oo-design/20191020235840.png">
+<ol start="4">
+<li>创建订单</li>
+</ol>
+<p>这里的代码该怎么写，这样？</p>
+<img src="/2019/10/11/oo-design/20191021000742.png">
+<p>还可以继续优化吗？<br><img src="/2019/10/11/oo-design/20191021001002.png"><br>使用闭包。<br><img src="/2019/10/11/oo-design/20191021001305.png"></p>
+<h3 id="PHP-版完整代码"><a href="#PHP-版完整代码" class="headerlink" title="PHP 版完整代码"></a>PHP 版完整代码</h3><img src="/2019/10/11/oo-design/20191024143840.png">
+<blockquote>
+<p>上面的代码有什么好处？</p>
+</blockquote>
+<p>假如“我一个同事”又要新开发一个新的应用，新的应用创建订单的时候又有新的逻辑，比如没有优惠逻辑、新增了增加用户积分的逻辑等等，复用上面的代码，是不是就很简单了。</p>
+<img src="/2019/10/11/oo-design/20191021001739.png">
+<blockquote>
+<p>所以现在，什么是面向对象？</p>
+</blockquote>
+<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><h3 id="面向对象的设计原则"><a href="#面向对象的设计原则" class="headerlink" title="面向对象的设计原则"></a>面向对象的设计原则</h3><ul>
+<li>对接口编程而不是对实现编程</li>
+<li>优先使用对象组合而不是继承</li>
+<li>抽象用于不同的事物，而接口用于事物的行为</li>
+</ul>
+<p>针对上面的概念，我们再回头开我们上面的代码</p>
+<blockquote>
+<p>对接口编程而不是对实现编程</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：RobotOrderCreate依赖了BehaviorOrderCreateInterface抽象接口</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>优先使用对象组合而不是继承</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：完全没有使用继承，多个行为不同场景组合使用</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>抽象用于不同的事物，而接口用于事物的行为</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">结果：</span><br><span class="line">1. 抽象了一个创建订单的机器人 RobotOrderCreate</span><br><span class="line">2. 机器人又有不同的创建行为</span><br><span class="line">3. 机器人的创建行为最终依赖于BehaviorOrderCreateInterface接口</span><br></pre></td></tr></table></figure>
+<p>是不是完美契合，所以这就是“面向对象的设计过程”。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p><code>代码建模过程就是“面向对象的设计过程”的具体实现方式.</code></p>
+<h2 id="预习"><a href="#预习" class="headerlink" title="预习"></a>预习</h2><h3 id="设计模式"><a href="#设计模式" class="headerlink" title="设计模式"></a>设计模式</h3><blockquote>
+<p>最后，设计模式又是什么？</p>
+</blockquote>
+<p>同样，我们下结合上面的场景和概念预习下设计模式。</p>
+<h4 id="设计模式的设计原则"><a href="#设计模式的设计原则" class="headerlink" title="设计模式的设计原则"></a>设计模式的设计原则</h4><blockquote>
+<p>开闭原则（Open Close Principle）：对扩展开放，对修改封闭</p>
+</blockquote>
+<p>看看上面的最终的代码是不是完美契合。</p>
+<img src="/2019/10/11/oo-design/20191022131439.png">
+<blockquote>
+<p>依赖倒转原则：对接口编程，依赖于抽象而不依赖于具体</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：创建订单的逻辑从依赖具体的业务转变为依赖于抽象接口BehaviorOrderCreateInterface</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>接口隔离原则：使用多个接口，而不是对一个接口编程，去依赖降低耦合</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">结果：上面的场景，我们只简单定义了订单创建的接BehaviorOrderCreateInterface。由于订单创建过程可能出现异常回滚，我们就需要再定义一个订单创建回滚的接口</span><br><span class="line">BehaviorOrderCreateRollBackInterface.</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>迪米特法则，又称最少知道原则：减少内部依赖，尽可能的独立</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：还是上面那段代码，我们把RobotOrderCreate机器人依赖的行为通过外部注入的方式使用。</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>合成复用原则：多个独立的实体合成聚合，而不是使用继承</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：RobotOrderCreate依赖了多个实际的订单创建行为类。</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>里氏代换：超类（父类）出现的地方，派生类（子类）都可以出现</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">结果：不好意思，我们完全没用继承。（备注：继承容易造成父类膨胀。）</span><br></pre></td></tr></table></figure>
+<h2 id="下回预告"><a href="#下回预告" class="headerlink" title="下回预告"></a>下回预告</h2><p>上面预习了设计模式的概念，下回我将给大家分享《设计模式基础之——设计模式业务实战》。</p>
+<hr>
+<p><strong>作者</strong></p>
+<p>施展，小米信息技术部海外商城组</p>
+<p><strong>招聘</strong></p>
+<p>小米信息部武汉研发中心，信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p><strong>欢迎投递简历：jin.zhang(a)xiaomi.com</strong></p>
+<p>更多技术文章：<a href="https://xiaomi-info.github.io/">小米信息部技术团队</a></p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#设计模式" >
+    <span class="tag-code">设计模式</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2019/06/21/concurrency/">
+        <span class="nav-arrow">← </span>
+        
+          当我们在谈论高并发的时候究竟在谈什么?
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2019/11/13/golang-compiler-principle/">
+        
+          走进Golang之编译器原理
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#背景"><span class="toc-nav-text">背景</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#场景"><span class="toc-nav-text">场景</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#一个简单的业务场景"><span class="toc-nav-text">一个简单的业务场景</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#代码建模"><span class="toc-nav-text">代码建模</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#实栗-🌰-分析"><span class="toc-nav-text">实栗 🌰 分析</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#业务分析少不了"><span class="toc-nav-text">业务分析少不了</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#获取事物"><span class="toc-nav-text">获取事物</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#获取行为"><span class="toc-nav-text">获取行为</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#得到-UML"><span class="toc-nav-text">得到 UML</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#设计代码"><span class="toc-nav-text">设计代码</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#PHP-版完整代码"><span class="toc-nav-text">PHP 版完整代码</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#概念"><span class="toc-nav-text">概念</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#面向对象的设计原则"><span class="toc-nav-text">面向对象的设计原则</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#结论"><span class="toc-nav-text">结论</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#预习"><span class="toc-nav-text">预习</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#设计模式"><span class="toc-nav-text">设计模式</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-4"><a class="toc-nav-link" href="#设计模式的设计原则"><span class="toc-nav-text">设计模式的设计原则</span></a></li></ol></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#下回预告"><span class="toc-nav-text">下回预告</span></a></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2019/10/11/oo-design/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "设计模式基础之——面向对象的设计过程",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="Hexo 3.9.0">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta name="description" content="小米信息部技术团队">
+  <meta name="keyword" content="hexo-theme, vuejs">
+  
+    <link rel="shortcut icon" href="/css/images/logo.png">
+  
+  <title>
+    
+      synchronized 实现原理 | 小米信息部技术团队
+    
+  </title>
+  <link href="//cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <link href="//cdn.bootcss.com/highlight.js/9.12.0/styles/tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/plugins/gitment.css">
+  <script src="//cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//cdn.bootcss.com/geopattern/1.2.3/js/geopattern.min.js"></script>
+  <script src="//cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+  <script src="/js/qrious.js"></script>
+<script src="/js/gitment.js"></script>
+  
+  
+    <!-- MathJax support START -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+          processEscapes: true,
+          skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax(), i;
+        for (i=0; i < all.length; i += 1) {
+          all[i].SourceElement().parentNode.className += ' has-jax';
+        }
+      });
+    </script>
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <!-- MathJax support END -->
+  
+
+
+</head>
+<div class="wechat-share">
+  <img src="/css/images/logo.png">
+</div>
+
+  <body>
+    <header class="header fixed-header">
+  <div class="header-container">
+    <a class="home-link" href="/">
+      <div class="logo"></div>
+      <span>小米信息部技术团队</span>
+    </a>
+    <ul class="right-list">
+      
+        <li class="list-item">
+          
+            <a href="/" class="item-link">主页</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/tags/" class="item-link">标签</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/archives/" class="item-link">归档</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/project/" class="item-link">项目</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/atom" class="item-link">订阅</a>
+          
+        </li>
+      
+        <li class="list-item">
+          
+            <a href="/about/" class="item-link">关于</a>
+          
+        </li>
+      
+    </ul>
+    <div class="menu">
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+      <span class="icon-bar"></span>
+    </div>
+    <div class="menu-mask">
+      <ul class="menu-list">
+        
+          <li class="menu-item">
+            
+              <a href="/" class="menu-link">主页</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/tags/" class="menu-link">标签</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/archives/" class="menu-link">归档</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/project/" class="menu-link">项目</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/atom" class="menu-link">订阅</a>
+            
+          </li>
+        
+          <li class="menu-item">
+            
+              <a href="/about/" class="menu-link">关于</a>
+            
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</header>
+
+    <div id="article-banner">
+  <h2>synchronized 实现原理</h2>
+  <p class="post-date">2020-03-24</p>
+  <div class="arrow-down">
+    <a href="javascript:;"></a>
+  </div>
+</div>
+<main class="app-body flex-box">
+  <!-- Article START -->
+  <article class="post-article">
+    <section class="markdown-content"><h1 id="synchronized-实现原理"><a href="#synchronized-实现原理" class="headerlink" title="synchronized 实现原理"></a>synchronized 实现原理</h1><p><strong>[作者简介]</strong> 张庆波，小米信息技术部架构组</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>众所周知 <code>synchronized</code> 锁在 <code>Java</code> 中经常使用它的源码是 <code>C++</code> 实现的，它的实现原理是怎样的呢？本文以 <code>OpenJDK 8</code> 为例探究以下内容。</p>
+<ul>
+<li>synchronized 是如何工作的</li>
+<li>synchronized 锁升级过程</li>
+<li>重量级锁的队列之间协作过程和策略</li>
+</ul>
+<h2 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a>对象头</h2><p>对象头的内容非常多这里我们只做简单介绍以引出后文。在 JVM 中对象布局分为三块区域：</p>
+<ul>
+<li>对象头</li>
+<li>实例数据</li>
+<li>对齐填充</li>
+</ul>
+<img src="/2020/03/24/synchronized/object.png">
+<p>当线程访问同步块时首先需要获得锁并把相关信息存储在对象头中。所以 <code>wait</code>、<code>notify</code>、<code>notifyAll</code> 这些方法为什么被设计在 <code>Object</code> 中或许你已经找到答案了。</p>
+<p>Hotspot 有两种对象头：</p>
+<ul>
+<li>数组类型，使用 <code>arrayOopDesc</code> 来描述对象头</li>
+<li>其它，使用 <code>instanceOopDesc</code> 来描述对象头</li>
+</ul>
+<p>对象头由两部分组成</p>
+<ul>
+<li>Mark Word：存储自身的运行时数据，例如 HashCode、GC 年龄、锁相关信息等内容。</li>
+<li>Klass Pointer：类型指针指向它的类元数据的指针。</li>
+</ul>
+<p>64 位虚拟机 Mark Word 是 64bit 其结构如下：</p>
+<img src="/2020/03/24/synchronized/sync_1.png">
+<p>在 JDK 6 中虚拟机团队对锁进行了重要改进，优化了其性能引入了 <code>偏向锁</code>、<code>轻量级锁</code>、<code>适应性自旋</code>、<code>锁消除</code>、<code>锁粗化</code>等实现，其中 <code>锁消除</code>和<code>锁粗化</code>本文不做详细讨论其余内容我们将对其进行逐一探究。</p>
+<p>总体上来说锁状态升级流程如下：</p>
+<img src="/2020/03/24/synchronized/lock.png">
+<h2 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h2><h3 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h3><p>当线程访问同步块并获取锁时处理流程如下：</p>
+<ol>
+<li>检查 <code>mark word</code> 的<code>线程 id</code> 。</li>
+<li>如果为空则设置 CAS 替换当前线程 id。如果替换成功则获取锁成功，如果失败则撤销偏向锁。</li>
+<li>如果不为空则检查 <code>线程 id</code>为是否为本线程。如果是则获取锁成功，如果失败则撤销偏向锁。</li>
+</ol>
+<p>持有偏向锁的线程以后每次进入这个锁相关的同步块时，只需比对一下 mark word 的线程 id 是否为本线程，如果是则获取锁成功。</p>
+<p>如果发生线程竞争发生 2、3 步失败的情况则需要撤销偏向锁。</p>
+<h3 id="偏向锁的撤销"><a href="#偏向锁的撤销" class="headerlink" title="偏向锁的撤销"></a>偏向锁的撤销</h3><ol>
+<li>偏向锁的撤销动作必须等待全局安全点</li>
+<li>暂停拥有偏向锁的线程，判断锁对象是否处于被锁定状态</li>
+<li>撤销偏向锁恢复到无锁（标志位为 01）或轻量级锁（标志位为 00）的状态</li>
+</ol>
+<h3 id="优点"><a href="#优点" class="headerlink" title="优点"></a>优点</h3><p>只有一个线程执行同步块时进一步提高性能，适用于一个线程反复获得同一锁的情况。偏向锁可以提高带有同步但无竞争的程序性能。</p>
+<h3 id="缺点"><a href="#缺点" class="headerlink" title="缺点"></a>缺点</h3><p>如果存在竞争会带来额外的锁撤销操作。</p>
+<h2 id="轻量级锁"><a href="#轻量级锁" class="headerlink" title="轻量级锁"></a>轻量级锁</h2><h3 id="加锁"><a href="#加锁" class="headerlink" title="加锁"></a>加锁</h3><p>多个线程竞争偏向锁导致偏向锁升级为轻量级锁</p>
+<ol>
+<li>JVM 在当前线程的栈帧中创建 Lock Reocrd，并将对象头中的 Mark Word 复制到 Lock Reocrd 中。（Displaced Mark Word）</li>
+<li>线程尝试使用 CAS 将对象头中的 Mark Word 替换为指向 Lock Reocrd 的指针。如果成功则获得锁，如果失败则先检查对象的 Mark Word 是否指向当前线程的栈帧如果是则说明已经获取锁，否则说明其它线程竞争锁则膨胀为重量级锁。</li>
+</ol>
+<h3 id="解锁"><a href="#解锁" class="headerlink" title="解锁"></a>解锁</h3><ol>
+<li>使用 CAS 操作将 Mark Word 还原</li>
+<li>如果第 1 步执行成功则释放完成</li>
+<li>如果第 1 步执行失败则膨胀为重量级锁。</li>
+</ol>
+<h3 id="优点-1"><a href="#优点-1" class="headerlink" title="优点"></a>优点</h3><p>其性能提升的依据是对于绝大部分的锁在整个生命周期内都是不会存在竞争。在多线程交替执行同步块的情况下，可以避免重量级锁引起的性能消耗。</p>
+<h3 id="缺点-1"><a href="#缺点-1" class="headerlink" title="缺点"></a>缺点</h3><p>在有多线程竞争的情况下轻量级锁增加了额外开销。</p>
+<h2 id="自旋锁"><a href="#自旋锁" class="headerlink" title="自旋锁"></a>自旋锁</h2><p>自旋是一种获取锁的机制并不是一个锁状态。在膨胀为重量级锁的过程中或重入时会多次尝试自旋获取锁以避免线程唤醒的开销，但是它会占用 CPU 的时间因此如果同步代码块执行时间很短自旋等待的效果就很好，反之则浪费了 CPU 资源。默认情况下自旋次数是 10 次用户可以使用参数 <code>-XX : PreBlockSpin</code> 来更改。那么如何优化来避免此情况发生呢？我们来看适应性自旋。</p>
+<h3 id="适应性自旋锁"><a href="#适应性自旋锁" class="headerlink" title="适应性自旋锁"></a>适应性自旋锁</h3><p>JDK 6 引入了自适应自旋锁，意味着自旋的次数不在固定，而是由前一次在同一个锁上的自旋时间及锁的拥有者的状态来决定。如果对于某个锁很少自旋成功那么以后有可能省略掉自旋过程以避免资源浪费。有了自适应自旋随着程序运行和性能监控信息的不断完善，虚拟机对程序锁的状况预测就会越来越准确，虛拟机就会变得越来越“聪明”了。</p>
+<h3 id="优点-2"><a href="#优点-2" class="headerlink" title="优点"></a>优点</h3><p>竞争的线程不会阻塞挂起，提高了程序响应速度。避免重量级锁引起的性能消耗。</p>
+<h3 id="缺点-2"><a href="#缺点-2" class="headerlink" title="缺点"></a>缺点</h3><p>如果线程始终无法获取锁，自旋消耗 CPU 最终会膨胀为重量级锁。</p>
+<h2 id="重量级锁"><a href="#重量级锁" class="headerlink" title="重量级锁"></a>重量级锁</h2><p>在重量级锁中没有竞争到锁的对象会 park 被挂起，退出同步块时 unpark 唤醒后续线程。唤醒操作涉及到操作系统调度会有额外的开销。</p>
+<p><code>ObjectMonitor</code> 中包含一个同步队列（由 <code>_cxq</code> 和 <code>_EntryList</code> 组成）一个等待队列（ <code>_WaitSet</code> ）。</p>
+<ul>
+<li>被<code>notify</code>或 <code>notifyAll</code> 唤醒时根据 <code>policy</code> 策略选择加入的队列（policy 默认为 0）</li>
+<li>退出同步块时根据 <code>QMode</code> 策略来唤醒下一个线程（QMode 默认为 0）</li>
+</ul>
+<p>这里稍微提及一下<strong>管程</strong>这个概念。synchronized 关键字及 <code>wait</code>、<code>notify</code>、<code>notifyAll</code> 这三个方法都是管程的组成部分。可以说管程就是一把解决并发问题的万能钥匙。有两大核心问题管程都是能够解决的：</p>
+<ul>
+<li><strong>互斥</strong>：即同一时刻只允许一个线程访问共享资源；</li>
+<li><strong>同步</strong>：即线程之间如何通信、协作。</li>
+</ul>
+<p><code>synchronized</code> 的 <code>monitor</code>锁机制和 JDK 并发包中的 <code>AQS</code> 是很相似的，只不过 <code>AQS</code> 中是一个同步队列多个等待队列。熟悉 <code>AQS</code> 的同学可以拿来做个对比。</p>
+<h3 id="队列协作流程图"><a href="#队列协作流程图" class="headerlink" title="队列协作流程图"></a>队列协作流程图</h3><img src="/2020/03/24/synchronized/sync_2.png">
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><p>在 HotSpot 中 monitor 是由 ObjectMonitor 实现的。其源码是用 c++来实现的源文件是 ObjectMonitor.hpp 主要数据结构如下所示：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">ObjectMonitor() &#123;</span><br><span class="line">    _header       = <span class="literal">NULL</span>;</span><br><span class="line">    _count        = <span class="number">0</span>;</span><br><span class="line">    _waiters      = <span class="number">0</span>,       <span class="comment">// 等待中的线程数</span></span><br><span class="line">    _recursions   = <span class="number">0</span>;       <span class="comment">// 线程重入次数</span></span><br><span class="line">    _object       = <span class="literal">NULL</span>;    <span class="comment">// 存储该 monitor 的对象</span></span><br><span class="line">    _owner        = <span class="literal">NULL</span>;    <span class="comment">// 指向拥有该 monitor 的线程</span></span><br><span class="line">    _WaitSet      = <span class="literal">NULL</span>;    <span class="comment">// 等待线程 双向循环链表_WaitSet 指向第一个节点</span></span><br><span class="line">    _WaitSetLock  = <span class="number">0</span> ;</span><br><span class="line">    _Responsible  = <span class="literal">NULL</span> ;</span><br><span class="line">    _succ         = <span class="literal">NULL</span> ;</span><br><span class="line">    _cxq          = <span class="literal">NULL</span> ;   <span class="comment">// 多线程竞争锁时的单向链表</span></span><br><span class="line">    FreeNext      = <span class="literal">NULL</span> ;</span><br><span class="line">    _EntryList    = <span class="literal">NULL</span> ;   <span class="comment">// _owner 从该双向循环链表中唤醒线程，</span></span><br><span class="line">    _SpinFreq     = <span class="number">0</span> ;</span><br><span class="line">    _SpinClock    = <span class="number">0</span> ;</span><br><span class="line">    OwnerIsThread = <span class="number">0</span> ;</span><br><span class="line">    _previous_owner_tid = <span class="number">0</span>; <span class="comment">// 前一个拥有此监视器的线程 ID</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<ol>
+<li>_owner：初始时为 NULL。当有线程占有该 monitor 时 owner 标记为该线程的 ID。当线程释放 monitor 时 owner 恢复为 NULL。owner 是一个临界资源 JVM 是通过 CAS 操作来保证其线程安全的。</li>
+<li>_cxq：竞争队列所有请求锁的线程首先会被放在这个队列中（单向）。_cxq 是一个临界资源 JVM 通过 CAS 原子指令来修改_cxq 队列。<br>每当有新来的节点入队，它的 next 指针总是指向之前队列的头节点，而_cxq 指针会指向该新入队的节点，所以是后来居上。</li>
+<li>_EntryList： _cxq 队列中有资格成为候选资源的线程会被移动到该队列中。</li>
+<li>_WaitSet: 等待队列因为调用 wait 方法而被阻塞的线程会被放在该队列中。</li>
+</ol>
+</blockquote>
+<h3 id="monitor-竞争过程"><a href="#monitor-竞争过程" class="headerlink" title="monitor 竞争过程"></a>monitor 竞争过程</h3><blockquote>
+<ol>
+<li>通过 CAS 尝试把 monitor 的 owner 字段设置为当前线程。</li>
+<li>如果设置之前的 owner 指向当前线程，说明当前线程再次进入 monitor，即重入锁执行 recursions ++ , 记录重入的次数。</li>
+<li>如果当前线程是第一次进入该 monitor, 设置 recursions 为 1,_owner 为当前线程，该线程成功获得锁并返回。</li>
+<li>如果获取锁失败，则等待锁的释放。</li>
+</ol>
+</blockquote>
+<p>执行 <code>monitorenter</code> 指令时 调用以下代码</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">IRT_ENTRY_NO_ASYNC(<span class="keyword">void</span>, InterpreterRuntime::monitorenter(JavaThread* thread, BasicObjectLock* elem))</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> ASSERT</span></span><br><span class="line">  thread-&gt;last_frame().interpreter_frame_verify_monitor(elem);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">  <span class="keyword">if</span> (PrintBiasedLockingStatistics) &#123;</span><br><span class="line">    Atomic::inc(BiasedLocking::slow_path_entry_count_addr());</span><br><span class="line">  &#125;</span><br><span class="line">  Handle h_obj(thread, elem-&gt;obj());</span><br><span class="line">  assert(Universe::heap()-&gt;is_in_reserved_or_null(h_obj()),<span class="string">"must be NULL or an object"</span>);</span><br><span class="line"><span class="comment">// 是否使用偏向锁  JVM 启动时设置的偏向锁-XX:-UseBiasedLocking=false/true</span></span><br><span class="line">  <span class="keyword">if</span> (UseBiasedLocking) &#123;</span><br><span class="line">    <span class="comment">// Retry fast entry if bias is revoked to avoid unnecessary inflation</span></span><br><span class="line">    ObjectSynchronizer::fast_enter(h_obj, elem-&gt;lock(), <span class="literal">true</span>, CHECK);</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="comment">// 轻量级锁</span></span><br><span class="line">    ObjectSynchronizer::slow_enter(h_obj, elem-&gt;lock(), CHECK);</span><br><span class="line">  &#125;</span><br><span class="line">  assert(Universe::heap()-&gt;is_in_reserved_or_null(elem-&gt;obj()),</span><br><span class="line">         <span class="string">"must be NULL or an object"</span>);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> ASSERT</span></span><br><span class="line">  thread-&gt;last_frame().interpreter_frame_verify_monitor(elem);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">IRT_END</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p><code>slow_enter</code> 方法主要是轻量级锁的一些操作，如果操作失败则会膨胀为重量级锁，过程前面已经描述比较清楚此处不在赘述。<code>enter</code> 方法则为重量级锁的入口源码如下</p>
+</blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> ATTR ObjectMonitor::enter(TRAPS) &#123;</span><br><span class="line">  Thread * <span class="keyword">const</span> Self = THREAD ;</span><br><span class="line">  <span class="keyword">void</span> * cur ;</span><br><span class="line">  <span class="comment">// 省略部分代码</span></span><br><span class="line">  </span><br><span class="line">  <span class="comment">// 通过 CAS 操作尝试把 monitor 的_owner 字段设置为当前线程</span></span><br><span class="line">  cur = Atomic::cmpxchg_ptr (Self, &amp;_owner, <span class="literal">NULL</span>) ;</span><br><span class="line">  <span class="keyword">if</span> (cur == <span class="literal">NULL</span>) &#123;</span><br><span class="line">     assert (_recursions == <span class="number">0</span>   , <span class="string">"invariant"</span>) ;</span><br><span class="line">     assert (_owner      == Self, <span class="string">"invariant"</span>) ;</span><br><span class="line">     <span class="keyword">return</span> ;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"> <span class="comment">// 线程重入，recursions++</span></span><br><span class="line">  <span class="keyword">if</span> (cur == Self) &#123;</span><br><span class="line">     _recursions ++ ;</span><br><span class="line">     <span class="keyword">return</span> ;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果当前线程是第一次进入该 monitor, 设置_recursions 为 1,_owner 为当前线程</span></span><br><span class="line">  <span class="keyword">if</span> (Self-&gt;is_lock_owned ((address)cur)) &#123;</span><br><span class="line">    assert (_recursions == <span class="number">0</span>, <span class="string">"internal state error"</span>);</span><br><span class="line">    _recursions = <span class="number">1</span> ;</span><br><span class="line">    _owner = Self ;</span><br><span class="line">    OwnerIsThread = <span class="number">1</span> ;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">      jt-&gt;set_suspend_equivalent();</span><br><span class="line">        <span class="comment">// 如果获取锁失败，则等待锁的释放；</span></span><br><span class="line">      EnterI (THREAD) ;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (!ExitSuspendEquivalent(jt)) <span class="keyword">break</span> ;</span><br><span class="line">          _recursions = <span class="number">0</span> ;</span><br><span class="line">      _succ = <span class="literal">NULL</span> ;</span><br><span class="line">      <span class="built_in">exit</span> (<span class="literal">false</span>, Self) ;</span><br><span class="line"></span><br><span class="line">      jt-&gt;java_suspend_self();</span><br><span class="line">    &#125;</span><br><span class="line">    Self-&gt;set_current_pending_monitor(<span class="literal">NULL</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="monitor-等待"><a href="#monitor-等待" class="headerlink" title="monitor 等待"></a>monitor 等待</h3><blockquote>
+<ol>
+<li>当前线程被封装成 ObjectWaiter 对象 node，状态设置成 ObjectWaiter::TS_CXQ。</li>
+<li>for 循环通过 CAS 把 node 节点 push 到<code>_cxq</code>列表中，同一时刻可能有多个线程把自己的 node 节点 push 到<code>_cxq</code>列表中。</li>
+<li>node 节点 push 到_cxq 列表之后，通过自旋尝试获取锁，如果还是没有获取到锁则通过 park 将当前线程挂起等待被唤醒。</li>
+<li>当该线程被唤醒时会从挂起的点继续执行，通过 ObjectMonitor::TryLock 尝试获取锁。</li>
+</ol>
+</blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 省略部分代码</span></span><br><span class="line"><span class="keyword">void</span> ATTR ObjectMonitor::EnterI (TRAPS) &#123;</span><br><span class="line">    Thread * Self = THREAD ;</span><br><span class="line">    assert (Self-&gt;is_Java_thread(), <span class="string">"invariant"</span>) ;</span><br><span class="line">    assert (((JavaThread *) Self)-&gt;thread_state() == _thread_blocked   , <span class="string">"invariant"</span>) ;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Try lock 尝试获取锁</span></span><br><span class="line">    <span class="keyword">if</span> (TryLock (Self) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        assert (_succ != Self              , <span class="string">"invariant"</span>) ;</span><br><span class="line">        assert (_owner == Self             , <span class="string">"invariant"</span>) ;</span><br><span class="line">        assert (_Responsible != Self       , <span class="string">"invariant"</span>) ;</span><br><span class="line">        <span class="comment">// 如果获取成功则退出，避免 park unpark 系统调度的开销</span></span><br><span class="line">        <span class="keyword">return</span> ;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 自旋获取锁</span></span><br><span class="line">    <span class="keyword">if</span> (TrySpin(Self) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">        assert (_owner == Self, <span class="string">"invariant"</span>);</span><br><span class="line">        assert (_succ != Self, <span class="string">"invariant"</span>);</span><br><span class="line">        assert (_Responsible != Self, <span class="string">"invariant"</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 当前线程被封装成 ObjectWaiter 对象 node, 状态设置成 ObjectWaiter::TS_CXQ</span></span><br><span class="line">    <span class="function">ObjectWaiter <span class="title">node</span><span class="params">(Self)</span> </span>;</span><br><span class="line">    Self-&gt;_ParkEvent-&gt;reset() ;</span><br><span class="line">    node._prev   = (ObjectWaiter *) <span class="number">0xBAD</span> ;</span><br><span class="line">    node.TState  = ObjectWaiter::TS_CXQ ;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 通过 CAS 把 node 节点 push 到_cxq 列表中</span></span><br><span class="line">    ObjectWaiter * nxt ;</span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        node._next = nxt = _cxq ;</span><br><span class="line">        <span class="keyword">if</span> (Atomic::cmpxchg_ptr (&amp;node, &amp;_cxq, nxt) == nxt) <span class="keyword">break</span> ;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 再次 tryLock</span></span><br><span class="line">        <span class="keyword">if</span> (TryLock (Self) &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            assert (_succ != Self         , <span class="string">"invariant"</span>) ;</span><br><span class="line">            assert (_owner == Self        , <span class="string">"invariant"</span>) ;</span><br><span class="line">            assert (_Responsible != Self  , <span class="string">"invariant"</span>) ;</span><br><span class="line">            <span class="keyword">return</span> ;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">        <span class="comment">// 本段代码的主要思想和 AQS 中相似可以类比来看</span></span><br><span class="line">        <span class="comment">// 再次尝试</span></span><br><span class="line">        <span class="keyword">if</span> (TryLock (Self) &gt; <span class="number">0</span>) <span class="keyword">break</span> ;</span><br><span class="line">        assert (_owner != Self, <span class="string">"invariant"</span>) ;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> ((SyncFlags &amp; <span class="number">2</span>) &amp;&amp; _Responsible == <span class="literal">NULL</span>) &#123;</span><br><span class="line">           Atomic::cmpxchg_ptr (Self, &amp;_Responsible, <span class="literal">NULL</span>) ;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 满足条件则 park self</span></span><br><span class="line">        <span class="keyword">if</span> (_Responsible == Self || (SyncFlags &amp; <span class="number">1</span>)) &#123;</span><br><span class="line">            TEVENT (Inflated enter - park TIMED) ;</span><br><span class="line">            Self-&gt;_ParkEvent-&gt;park ((jlong) RecheckInterval) ;</span><br><span class="line">            <span class="comment">// Increase the RecheckInterval, but clamp the value.</span></span><br><span class="line">            RecheckInterval *= <span class="number">8</span> ;</span><br><span class="line">            <span class="keyword">if</span> (RecheckInterval &gt; <span class="number">1000</span>) RecheckInterval = <span class="number">1000</span> ;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            TEVENT (Inflated enter - park UNTIMED) ;</span><br><span class="line">            <span class="comment">// 通过 park 将当前线程挂起，等待被唤醒</span></span><br><span class="line">            Self-&gt;_ParkEvent-&gt;park() ;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (TryLock(Self) &gt; <span class="number">0</span>) <span class="keyword">break</span> ;</span><br><span class="line">        <span class="comment">// 再次尝试自旋</span></span><br><span class="line">        <span class="keyword">if</span> ((Knob_SpinAfterFutile &amp; <span class="number">1</span>) &amp;&amp; TrySpin(Self) &gt; <span class="number">0</span>) <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="monitor-释放"><a href="#monitor-释放" class="headerlink" title="monitor 释放"></a>monitor 释放</h3><blockquote>
+<p>当某个持有锁的线程执行完同步代码块时，会释放锁并 <code>unpark</code> 后续线程（由于篇幅只保留重要代码）。</p>
+</blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> ATTR ObjectMonitor::<span class="built_in">exit</span>(<span class="keyword">bool</span> not_suspended, TRAPS) &#123;</span><br><span class="line">   Thread * Self = THREAD ;</span><br><span class="line">  </span><br><span class="line">   <span class="keyword">if</span> (_recursions != <span class="number">0</span>) &#123;</span><br><span class="line">     _recursions--;        <span class="comment">// this is simple recursive enter</span></span><br><span class="line">     TEVENT (Inflated <span class="built_in">exit</span> - recursive) ;</span><br><span class="line">     <span class="keyword">return</span> ;</span><br><span class="line">   &#125;</span><br><span class="line"></span><br><span class="line">      ObjectWaiter * w = <span class="literal">NULL</span> ;</span><br><span class="line">      <span class="keyword">int</span> QMode = Knob_QMode ;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 直接绕过 EntryList 队列，从 cxq 队列中获取线程用于竞争锁</span></span><br><span class="line">      <span class="keyword">if</span> (QMode == <span class="number">2</span> &amp;&amp; _cxq != <span class="literal">NULL</span>) &#123;</span><br><span class="line">          w = _cxq ;</span><br><span class="line">          assert (w != <span class="literal">NULL</span>, <span class="string">"invariant"</span>) ;</span><br><span class="line">          assert (w-&gt;TState == ObjectWaiter::TS_CXQ, <span class="string">"Invariant"</span>) ;</span><br><span class="line">          ExitEpilog (Self, w) ;</span><br><span class="line">          <span class="keyword">return</span> ;</span><br><span class="line">      &#125;</span><br><span class="line">    <span class="comment">// cxq 队列插入 EntryList 尾部</span></span><br><span class="line">      <span class="keyword">if</span> (QMode == <span class="number">3</span> &amp;&amp; _cxq != <span class="literal">NULL</span>) &#123;</span><br><span class="line">          w = _cxq ;</span><br><span class="line">          <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">             assert (w != <span class="literal">NULL</span>, <span class="string">"Invariant"</span>) ;</span><br><span class="line">             ObjectWaiter * u = (ObjectWaiter *) Atomic::cmpxchg_ptr (<span class="literal">NULL</span>, &amp;_cxq, w) ;</span><br><span class="line">             <span class="keyword">if</span> (u == w) <span class="keyword">break</span> ;</span><br><span class="line">             w = u ;</span><br><span class="line">          &#125;</span><br><span class="line">          ObjectWaiter * q = <span class="literal">NULL</span> ;</span><br><span class="line">          ObjectWaiter * p ;</span><br><span class="line">          <span class="keyword">for</span> (p = w ; p != <span class="literal">NULL</span> ; p = p-&gt;_next) &#123;</span><br><span class="line">              guarantee (p-&gt;TState == ObjectWaiter::TS_CXQ, <span class="string">"Invariant"</span>) ;</span><br><span class="line">              p-&gt;TState = ObjectWaiter::TS_ENTER ;</span><br><span class="line">              p-&gt;_prev = q ;</span><br><span class="line">              q = p ;</span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          ObjectWaiter * Tail ;</span><br><span class="line">          <span class="keyword">for</span> (Tail = _EntryList ; Tail != <span class="literal">NULL</span> &amp;&amp; Tail-&gt;_next != <span class="literal">NULL</span> ; Tail = Tail-&gt;_next) ;</span><br><span class="line">          <span class="keyword">if</span> (Tail == <span class="literal">NULL</span>) &#123;</span><br><span class="line">              _EntryList = w ;</span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">              Tail-&gt;_next = w ;</span><br><span class="line">              w-&gt;_prev = Tail ;</span><br><span class="line">          &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cxq 队列插入到_EntryList 头部</span></span><br><span class="line">      <span class="keyword">if</span> (QMode == <span class="number">4</span> &amp;&amp; _cxq != <span class="literal">NULL</span>) &#123;</span><br><span class="line">          <span class="comment">// 把 cxq 队列放入 EntryList</span></span><br><span class="line">          <span class="comment">// 此策略确保最近运行的线程位于 EntryList 的头部</span></span><br><span class="line">          w = _cxq ;</span><br><span class="line">          <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">             assert (w != <span class="literal">NULL</span>, <span class="string">"Invariant"</span>) ;</span><br><span class="line">             ObjectWaiter * u = (ObjectWaiter *) Atomic::cmpxchg_ptr (<span class="literal">NULL</span>, &amp;_cxq, w) ;</span><br><span class="line">             <span class="keyword">if</span> (u == w) <span class="keyword">break</span> ;</span><br><span class="line">             w = u ;</span><br><span class="line">          &#125;</span><br><span class="line">          assert (w != <span class="literal">NULL</span>              , <span class="string">"invariant"</span>) ;</span><br><span class="line"></span><br><span class="line">          ObjectWaiter * q = <span class="literal">NULL</span> ;</span><br><span class="line">          ObjectWaiter * p ;</span><br><span class="line">          <span class="keyword">for</span> (p = w ; p != <span class="literal">NULL</span> ; p = p-&gt;_next) &#123;</span><br><span class="line">              guarantee (p-&gt;TState == ObjectWaiter::TS_CXQ, <span class="string">"Invariant"</span>) ;</span><br><span class="line">              p-&gt;TState = ObjectWaiter::TS_ENTER ;</span><br><span class="line">              p-&gt;_prev = q ;</span><br><span class="line">              q = p ;</span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">          <span class="keyword">if</span> (_EntryList != <span class="literal">NULL</span>) &#123;</span><br><span class="line">              q-&gt;_next = _EntryList ;</span><br><span class="line">              _EntryList-&gt;_prev = q ;</span><br><span class="line">          &#125;</span><br><span class="line">          _EntryList = w ;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      w = _EntryList  ;</span><br><span class="line">      <span class="keyword">if</span> (w != <span class="literal">NULL</span>) &#123;</span><br><span class="line">          assert (w-&gt;TState == ObjectWaiter::TS_ENTER, <span class="string">"invariant"</span>) ;</span><br><span class="line">          ExitEpilog (Self, w) ;</span><br><span class="line">          <span class="keyword">return</span> ;</span><br><span class="line">      &#125;</span><br><span class="line">      w = _cxq ;</span><br><span class="line">      <span class="keyword">if</span> (w == <span class="literal">NULL</span>) <span class="keyword">continue</span> ;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">          assert (w != <span class="literal">NULL</span>, <span class="string">"Invariant"</span>) ;</span><br><span class="line">          ObjectWaiter * u = (ObjectWaiter *) Atomic::cmpxchg_ptr (<span class="literal">NULL</span>, &amp;_cxq, w) ;</span><br><span class="line">          <span class="keyword">if</span> (u == w) <span class="keyword">break</span> ;</span><br><span class="line">          w = u ;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (QMode == <span class="number">1</span>) &#123;</span><br><span class="line">         <span class="comment">// QMode == 1 : 把 cxq 倾倒入 EntryList 逆序</span></span><br><span class="line">         ObjectWaiter * s = <span class="literal">NULL</span> ;</span><br><span class="line">         ObjectWaiter * t = w ;</span><br><span class="line">         ObjectWaiter * u = <span class="literal">NULL</span> ;</span><br><span class="line">         <span class="keyword">while</span> (t != <span class="literal">NULL</span>) &#123;</span><br><span class="line">             guarantee (t-&gt;TState == ObjectWaiter::TS_CXQ, <span class="string">"invariant"</span>) ;</span><br><span class="line">             t-&gt;TState = ObjectWaiter::TS_ENTER ;</span><br><span class="line">             u = t-&gt;_next ;</span><br><span class="line">             t-&gt;_prev = u ;</span><br><span class="line">             t-&gt;_next = s ;</span><br><span class="line">             s = t;</span><br><span class="line">             t = u ;</span><br><span class="line">         &#125;</span><br><span class="line">         _EntryList  = s ;</span><br><span class="line">         assert (s != <span class="literal">NULL</span>, <span class="string">"invariant"</span>) ;</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">         <span class="comment">// QMode == 0 or QMode == 2</span></span><br><span class="line">         _EntryList = w ;</span><br><span class="line">         ObjectWaiter * q = <span class="literal">NULL</span> ;</span><br><span class="line">         ObjectWaiter * p ;</span><br><span class="line">          <span class="comment">// 将单向链表构造成双向环形链表；</span></span><br><span class="line">         <span class="keyword">for</span> (p = w ; p != <span class="literal">NULL</span> ; p = p-&gt;_next) &#123;</span><br><span class="line">             guarantee (p-&gt;TState == ObjectWaiter::TS_CXQ, <span class="string">"Invariant"</span>) ;</span><br><span class="line">             p-&gt;TState = ObjectWaiter::TS_ENTER ;</span><br><span class="line">             p-&gt;_prev = q ;</span><br><span class="line">             q = p ;</span><br><span class="line">         &#125;</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">if</span> (_succ != <span class="literal">NULL</span>) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">      w = _EntryList  ;</span><br><span class="line">      <span class="keyword">if</span> (w != <span class="literal">NULL</span>) &#123;</span><br><span class="line">          guarantee (w-&gt;TState == ObjectWaiter::TS_ENTER, <span class="string">"invariant"</span>) ;</span><br><span class="line">          ExitEpilog (Self, w) ;</span><br><span class="line">          <span class="keyword">return</span> ;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="notify-唤醒"><a href="#notify-唤醒" class="headerlink" title="notify 唤醒"></a>notify 唤醒</h3><blockquote>
+<p>notify 或者 notifyAll 方法可以唤醒同一个锁监视器下调用 wait 挂起的线程，具体实现如下</p>
+</blockquote>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> ObjectMonitor::notify(TRAPS) &#123;</span><br><span class="line">    CHECK_OWNER();</span><br><span class="line">    <span class="keyword">if</span> (_WaitSet == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        TEVENT (Empty - Notify);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    DTRACE_MONITOR_PROBE(notify, <span class="keyword">this</span>, object(), THREAD);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> Policy = Knob_MoveNotifyee;</span><br><span class="line"></span><br><span class="line">    Thread::SpinAcquire(&amp;_WaitSetLock, <span class="string">"WaitSet - notify"</span>);</span><br><span class="line">    ObjectWaiter *iterator = DequeueWaiter();</span><br><span class="line">    <span class="keyword">if</span> (iterator != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="comment">// 省略一些代码</span></span><br><span class="line"></span><br><span class="line">         <span class="comment">// 头插 EntryList</span></span><br><span class="line">        <span class="keyword">if</span> (Policy == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (List == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                iterator-&gt;_next = iterator-&gt;_prev = <span class="literal">NULL</span>;</span><br><span class="line">                _EntryList = iterator;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                List-&gt;_prev = iterator;</span><br><span class="line">                iterator-&gt;_next = List;</span><br><span class="line">                iterator-&gt;_prev = <span class="literal">NULL</span>;</span><br><span class="line">                _EntryList = iterator;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (Policy == <span class="number">1</span>) &#123;      <span class="comment">// 尾插 EntryList</span></span><br><span class="line">            <span class="keyword">if</span> (List == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                iterator-&gt;_next = iterator-&gt;_prev = <span class="literal">NULL</span>;</span><br><span class="line">                _EntryList = iterator;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                ObjectWaiter *Tail;</span><br><span class="line">                <span class="keyword">for</span> (Tail = List; Tail-&gt;_next != <span class="literal">NULL</span>; Tail = Tail-&gt;_next);</span><br><span class="line">                assert (Tail != <span class="literal">NULL</span> &amp;&amp; Tail-&gt;_next == <span class="literal">NULL</span>, <span class="string">"invariant"</span>);</span><br><span class="line">                Tail-&gt;_next = iterator;</span><br><span class="line">                iterator-&gt;_prev = Tail;</span><br><span class="line">                iterator-&gt;_next = <span class="literal">NULL</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (Policy == <span class="number">2</span>) &#123;      <span class="comment">// 头插 cxq</span></span><br><span class="line">            <span class="comment">// prepend to cxq</span></span><br><span class="line">            <span class="keyword">if</span> (List == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                iterator-&gt;_next = iterator-&gt;_prev = <span class="literal">NULL</span>;</span><br><span class="line">                _EntryList = iterator;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                iterator-&gt;TState = ObjectWaiter::TS_CXQ;</span><br><span class="line">                <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                    ObjectWaiter *Front = _cxq;</span><br><span class="line">                    iterator-&gt;_next = Front;</span><br><span class="line">                    <span class="keyword">if</span> (Atomic::cmpxchg_ptr(iterator, &amp;_cxq, Front) == Front) &#123;</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (Policy == <span class="number">3</span>) &#123;      <span class="comment">// 尾插 cxq</span></span><br><span class="line">            iterator-&gt;TState = ObjectWaiter::TS_CXQ;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                ObjectWaiter *Tail;</span><br><span class="line">                Tail = _cxq;</span><br><span class="line">                <span class="keyword">if</span> (Tail == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                    iterator-&gt;_next = <span class="literal">NULL</span>;</span><br><span class="line">                    <span class="keyword">if</span> (Atomic::cmpxchg_ptr(iterator, &amp;_cxq, <span class="literal">NULL</span>) == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    <span class="keyword">while</span> (Tail-&gt;_next != <span class="literal">NULL</span>) Tail = Tail-&gt;_next;</span><br><span class="line">                    Tail-&gt;_next = iterator;</span><br><span class="line">                    iterator-&gt;_prev = Tail;</span><br><span class="line">                    iterator-&gt;_next = <span class="literal">NULL</span>;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            ParkEvent *ev = iterator-&gt;_event;</span><br><span class="line">            iterator-&gt;TState = ObjectWaiter::TS_RUN;</span><br><span class="line">            OrderAccess::fence();</span><br><span class="line">            ev-&gt;unpark();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (Policy &lt; <span class="number">4</span>) &#123;</span><br><span class="line">            iterator-&gt;wait_reenter_begin(<span class="keyword">this</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 自旋释放</span></span><br><span class="line">    Thread::SpinRelease(&amp;_WaitSetLock);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (iterator != <span class="literal">NULL</span> &amp;&amp; ObjectMonitor::_sync_Notifications != <span class="literal">NULL</span>) &#123;</span><br><span class="line">        ObjectMonitor::_sync_Notifications-&gt;inc();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>本文介绍了 <code>synchronized</code> 工作原理和锁升级的过程。其中锁队列的协作流程较复杂，本文配了详细的流程图可以参照。最后附上了一部分重要代码的解析，理解 <code>synchronized</code> 原理之后便于写出性能更高的代码。</p>
+<p>简单的来说偏向锁通过对比 Mark Word thread id 解决加锁问题。而轻量级锁是通过用 CAS 操作 Mark Word 和自旋来解决加锁问题，避免线程阻塞和唤醒而影响性能。重量级锁是将除了拥有锁的线程以外的线程都阻塞。</p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><ul>
+<li><a href="http://openjdk.java.net/groups/hotspot/docs/HotSpotGlossary.html" target="_blank" rel="noopener">HotSpot Glossary of Terms</a></li>
+<li><a href="https://www.oracle.com/technetwork/java/6-performance-137236.html" target="_blank" rel="noopener">Java SE 6 Performance White Paper</a></li>
+</ul>
+<hr>
+<p><strong>作者</strong></p>
+<p>张庆波，小米信息技术部架构组</p>
+<p><strong>招聘</strong></p>
+<p>信息部是小米公司整体系统规划建设的核心部门，支撑公司国内外的线上线下销售服务体系、供应链体系、ERP 体系、内网 OA 体系、数据决策体系等精细化管控的执行落地工作，服务小米内部所有的业务部门以及 40 家生态链公司。</p>
+<p>同时部门承担大数据基础平台研发和微服务体系建设落，语言涉及 Java、Go，长年虚位以待对大数据处理、大型电商后端系统、微服务落地有深入理解和实践的各路英雄。</p>
+<p>欢迎投递简历：jin.zhang(a)xiaomi.com（武汉）</p>
+</section>
+    <!-- Tags START -->
+    
+      <div class="tags">
+        <span>Tags:</span>
+        
+  <a href="/tags#java" >
+    <span class="tag-code">java</span>
+  </a>
+
+  <a href="/tags#synchronized" >
+    <span class="tag-code">synchronized</span>
+  </a>
+
+  <a href="/tags#隐式锁" >
+    <span class="tag-code">隐式锁</span>
+  </a>
+
+      </div>
+    
+    <!-- Tags END -->
+    <!-- NAV START -->
+    
+  <div class="nav-container">
+    <!-- reverse left and right to put prev and next in a more logic postition -->
+    
+      <a class="nav-left" href="/2020/03/16/java-beans-introspection/">
+        <span class="nav-arrow">← </span>
+        
+          小议 Java 内省机制
+        
+      </a>
+    
+    
+      <a class="nav-right" href="/2020/03/27/oo-use-template/">
+        
+          设计模式基础之——模板模式业务实战
+        
+        <span class="nav-arrow"> →</span>
+      </a>
+    
+  </div>
+
+    <!-- NAV END -->
+    <!-- 打赏 START -->
+    
+    <!-- 打赏 END -->
+    <!-- 二维码 START -->
+    
+      <div class="qrcode">
+        <canvas id="share-qrcode"></canvas>
+        <p class="notice">扫描二维码，分享此文章</p>
+      </div>
+    
+    <!-- 二维码 END -->
+    
+      <!-- Gitment START -->
+      <div id="comments"></div>
+      <!-- Gitment END -->
+    
+  </article>
+  <!-- Article END -->
+  <!-- Catalog START -->
+  
+    <aside class="catalog-container">
+  <div class="toc-main">
+    <strong class="toc-title">Catalog</strong>
+    
+      <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#synchronized-实现原理"><span class="toc-nav-text">synchronized 实现原理</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#前言"><span class="toc-nav-text">前言</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#对象头"><span class="toc-nav-text">对象头</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#偏向锁"><span class="toc-nav-text">偏向锁</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#流程"><span class="toc-nav-text">流程</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#偏向锁的撤销"><span class="toc-nav-text">偏向锁的撤销</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#优点"><span class="toc-nav-text">优点</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#缺点"><span class="toc-nav-text">缺点</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#轻量级锁"><span class="toc-nav-text">轻量级锁</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#加锁"><span class="toc-nav-text">加锁</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#解锁"><span class="toc-nav-text">解锁</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#优点-1"><span class="toc-nav-text">优点</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#缺点-1"><span class="toc-nav-text">缺点</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#自旋锁"><span class="toc-nav-text">自旋锁</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#适应性自旋锁"><span class="toc-nav-text">适应性自旋锁</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#优点-2"><span class="toc-nav-text">优点</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#缺点-2"><span class="toc-nav-text">缺点</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#重量级锁"><span class="toc-nav-text">重量级锁</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#队列协作流程图"><span class="toc-nav-text">队列协作流程图</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#源码分析"><span class="toc-nav-text">源码分析</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#monitor-竞争过程"><span class="toc-nav-text">monitor 竞争过程</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#monitor-等待"><span class="toc-nav-text">monitor 等待</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#monitor-释放"><span class="toc-nav-text">monitor 释放</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#notify-唤醒"><span class="toc-nav-text">notify 唤醒</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#总结"><span class="toc-nav-text">总结</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#参考资料"><span class="toc-nav-text">参考资料</span></a></li></ol></li></ol>
+    
+  </div>
+</aside>
+  
+  <!-- Catalog END -->
+</main>
+
+<script>
+  (function () {
+    var url = 'https://xiaomi-info.github.io/2020/03/24/synchronized/';
+    var banner = ''
+    if (banner !== '' && banner !== 'undefined' && banner !== 'null') {
+      $('#article-banner').css({
+        'background-image': 'url(' + banner + ')'
+      })
+    } else {
+      $('#article-banner').geopattern(url)
+    }
+    $('.header').removeClass('fixed-header')
+
+     // error image
+    $(".markdown-content img").on('error', function() {
+      $(this).attr('src', 'http://file.muyutech.com/error-img.png')
+      $(this).css({
+        'cursor': 'default'
+      })
+    })
+
+    // zoom image
+    $(".markdown-content img").on('click', function() {
+      var src = $(this).attr('src')
+      if (src !== 'http://file.muyutech.com/error-img.png') {
+        var imageW = $(this).width()
+        var imageH = $(this).height()
+        
+        var zoom = ($(window).width() * 0.95 / imageW).toFixed(2)
+        zoom = zoom < 1 ? 1 : zoom
+        zoom = zoom > 2 ? 2 : zoom
+        var transY = (($(window).height() - imageH) / 2).toFixed(2)
+
+        $('body').append('<div class="image-view-wrap"><div class="image-view-inner"><img src="'+ src +'" /></div></div>')
+        $('.image-view-wrap').addClass('wrap-active')
+        $('.image-view-wrap img').css({
+          'width': `${imageW}`,
+          'transform': `translate3d(0, ${transY}px, 0) scale3d(${zoom}, ${zoom}, 1)`
+        })
+        $('html').css('overflow', 'hidden')
+
+        $('.image-view-wrap').on('click', function() {
+          $(this).remove()
+          $('html').attr('style', '')
+        })
+      }
+    })
+
+    // qrcode
+    var qr = new QRious({
+      element: document.getElementById('share-qrcode'),
+      value: document.location.href
+    });
+
+    // gitment
+    var gitmentConfig = "Xiaomi-Info";
+    if (gitmentConfig !== 'undefined') {
+      var gitment = new Gitment({
+        id: "synchronized 实现原理",
+        owner: "Xiaomi-Info",
+        repo: "xiaomi-info.github.io",
+        oauth: {
+          client_id: "c93dd7ac9d2e687ef016",
+          client_secret: "c5822d75521e6843d4ec30db61bd2ee861cb7c3e"
+        },
+        theme: {
+          render(state, instance) {
+            const container = document.createElement('div')
+            container.lang = "en-US"
+            container.className = 'gitment-container gitment-root-container'
+            container.appendChild(instance.renderHeader(state, instance))
+            container.appendChild(instance.renderEditor(state, instance))
+            container.appendChild(instance.renderComments(state, instance))
+            container.appendChild(instance.renderFooter(state, instance))
+            return container;
+          }
+        }
+      })
+      gitment.render(document.getElementById('comments'))
+    }
+  })();
+</script>
+
+    <div class="scroll-top">
+  <span class="arrow-icon"></span>
+</div>
+    <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<footer class="app-footer">
+  <p class="copyright">
+    &copy; 2021 | Proudly powered by <a href="https://hexo.io" target="_blank">Hexo</a>
+    <br>
+    Theme by <a href="https://github.com/yanm1ng">yanm1ng</a>
+  </p>
+  <p id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 &nbsp;&nbsp;
+  </p>
+  <p id="busuanzi_container_page_pv">
+    本文总阅读量<span id="busuanzi_value_page_pv"></span>次
+  </p>
+</footer>
+
+<script>
+  function async(u, c) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+</script>
+<script>
+  async("//cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+    FastClick.attach(document.body);
+  })
+</script>
+
+<script>
+  var hasLine = 'true';
+  async("//cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js", function(){
+    $('figure pre').each(function(i, block) {
+      var figure = $(this).parents('figure');
+      if (hasLine === 'false') {
+        figure.find('.gutter').hide();
+      }
+      var lang = figure.attr('class').split(' ')[1] || 'code';
+      var codeHtml = $(this).html();
+      var codeTag = document.createElement('code');
+      codeTag.className = lang;
+      codeTag.innerHTML = codeHtml;
+      $(this).attr('class', '').empty().html(codeTag);
+      figure.attr('data-lang', lang.toUpperCase());
+      hljs.highlightBlock(block);
+    });
+  })
+</script>
+<!-- Baidu Tongji -->
+
+<script src="/js/script.js"></script>
+  </body>
+</html>
